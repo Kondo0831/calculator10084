@@ -7,36 +7,37 @@
 }
 
 .calculator {
+  transform: scale(1.2);
+  transform-origin: top right;
   background: #000000;
-  border-radius: 20px;
+  border-radius: 30px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  padding: 20px;
-  width: 300px;
+  padding: 30px;
+  width: 400px;
 }
 
 .expression {
   font-size: 20px;
   color: #fdf9f9;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word; 
+  overflow-wrap: anywhere;
   margin-bottom: 4px;
   min-height: 20px;
-  white-space: normal;    /* 折り返しを許可 */
-  word-break: break-word; /* 単語の途中でも折り返す（長い数字対応） */
-  overflow-wrap: anywhere; /* これも念のため追加。数字の途中でもOK */
-  
 }
 
 .result {
   font-size: 42px;
   text-align: right;
-  margin-top: 20px;
+  margin-top: 25px;
   margin-bottom: 30px;
   padding: 10px;
   background-color: #ffffff;
   border-radius: 10px;
   box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
-  overflow: hidden;        /* ← はみ出た部分を隠す */
+  overflow-x: auto;  
+  overflow-y: hidden;      /* ← はみ出た部分を隠す */
   white-space: nowrap;         /* ← ここがポイント */
   text-align: left;   
   display: flex;
@@ -46,6 +47,7 @@
   line-height: 70px;
   line-height: normal; /* ← line-height を固定値にしないことで崩れ防止 *//* テキine-height: normal; /* ← line-height を固定値にしないことで崩れ防 */ /* ← 見た目は右寄せ */
 }
+
 
 .buttons {
   display: grid;
