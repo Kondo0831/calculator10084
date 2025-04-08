@@ -1,0 +1,39 @@
+<div class="calculator">
+  <!-- 計算式表示 -->
+  <div class="expression" *ngIf="showFormula">{{ formula }}</div>
+
+  <!-- 結果表示 -->
+  <div class="result" #calculatorDisplay>{{ display }}</div>
+
+  <!-- ボタン群 -->
+  <div class="buttons">
+    <button (click)="onButtonClick('C')">C</button>
+    <button (click)="onButtonClick('±')">±</button>
+    <button (click)="onButtonClick('%')">%</button>
+    <button (click)="onButtonClick('/')">÷</button>
+
+    <button (click)="onButtonClick('7')">7</button>
+    <button (click)="onButtonClick('8')">8</button>
+    <button (click)="onButtonClick('9')">9</button>
+    <button (click)="onButtonClick('*')">×</button>
+
+    <button (click)="onButtonClick('4')">4</button>
+    <button (click)="onButtonClick('5')">5</button>
+    <button (click)="onButtonClick('6')">6</button>
+    <button (click)="onButtonClick('-')">−</button>
+
+    <button (click)="onButtonClick('1')">1</button>
+    <button (click)="onButtonClick('2')">2</button>
+    <button (click)="onButtonClick('3')">3</button>
+    <button (click)="onButtonClick('+')">+</button>
+
+    <button (click)="onButtonClick('0')" class="zero">0</button>
+    <button (click)="onButtonClick('.')">.</button>
+    <button (click)="calculateResult()">=</button>
+    <button (click)="onButtonClick('←')">←</button>
+  </div>
+</div>
+
+
+
+
