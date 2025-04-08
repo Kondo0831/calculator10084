@@ -3,12 +3,11 @@
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background-color: #d9d5d5;
   font-family: 'Segoe UI', sans-serif;
 }
 
 .calculator {
-  background: #e0e0e0;
+  background: #000000;
   border-radius: 20px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   padding: 20px;
@@ -16,21 +15,36 @@
 }
 
 .expression {
-  font-size: 16px;
-  color: #555;
+  font-size: 20px;
+  color: #fdf9f9;
   text-align: right;
+  white-space: nowrap;
   margin-bottom: 4px;
   min-height: 20px;
+  white-space: normal;    /* 折り返しを許可 */
+  word-break: break-word; /* 単語の途中でも折り返す（長い数字対応） */
+  overflow-wrap: anywhere; /* これも念のため追加。数字の途中でもOK */
+  
 }
 
 .result {
-  font-size: 40px;
+  font-size: 42px;
   text-align: right;
-  margin-bottom: 20px;
+  margin-top: 20px;
+  margin-bottom: 30px;
   padding: 10px;
-  background-color: #fff;
-  border-radius: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
   box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
+  overflow: hidden;        /* ← はみ出た部分を隠す */
+  white-space: nowrap;         /* ← ここがポイント */
+  text-align: left;   
+  display: flex;
+  justify-content: flex-end;  
+  align-items: center; /* ← これが重要。上下中央に固定 */
+  height: 70px; /* 適宜調整 */
+  line-height: 70px;
+  line-height: normal; /* ← line-height を固定値にしないことで崩れ防止 *//* テキine-height: normal; /* ← line-height を固定値にしないことで崩れ防 */ /* ← 見た目は右寄せ */
 }
 
 .buttons {
@@ -40,11 +54,11 @@
 }
 
 button {
-  font-size: 20px;
+  font-size: 24px; 
   padding: 16px;
   border: none;
-  border-radius: 50%;
-  background-color: #79a9d1;
+  border-radius: 10%;
+  background-color: #adc8dd;
   color: white;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -54,7 +68,4 @@ button:hover {
   background-color: #5f93c0;
 }
 
-button.zero {
-  grid-column: span 2;
-  border-radius: 25px;
-}
+

@@ -15,54 +15,86 @@ export class AppComponent implements AfterViewInit {
   maxDigits: number = 10;
   formula: string = '';
   showFormula: boolean = false;
+  currentInput: string = '0';
+
+
 
   @ViewChild('calculatorDisplay', { static: true }) displayElement!: ElementRef;
 
-  buttons: string[] = [
-    'C', '←', '%', '/',
-    '7', '8', '9', '*',
-    '4', '5', '6', '-',
-    '1', '2', '3', '+',
-    '0', '.', '±', '='
-  ];
-
   ngAfterViewInit() {
-    this.adjustFontSize();
+    
   }
 
   onButtonClick(value: string) {
     switch (value) {
       case '=': this.calculateResult(); break;
-      case 'C': this.clearDisplay(); break;
-      case '←': this.deleteLast(); break;
       case '%': this.appendValue('%'); break;
       case '±': this.toggleSign(); break;
       default: this.appendValue(value);
     }
   }
 
+  onBackOrClear(): void {
+    if (this.rawDisplay.length <= 1 || this.rawDisplay === '0') {
+      this.clearDisplay();
+    } else {
+      this.deleteLast();
+    }
+  }
+  
+  
+
+  clearDisplay() {
+    this.rawDisplay = '0';
+    this.display = '0';
+    this.formula = '';
+    this.showFormula = false;
+   
+  }
+
+  deleteLast() {
+    this.rawDisplay = this.rawDisplay.slice(0, -1) || '0';
+    this.display = this.formatDisplay(this.rawDisplay);
+   
+  }
   appendValue(value: string) {
-    if (this.rawDisplay === '0' && value !== '.' && value !== '%') this.rawDisplay = '';
-
+    if (this.rawDisplay === '0' && value !== '.' && value !== '%') {
+      this.rawDisplay = '';
+    }
+  
     const operators = ['+', '-', '*', '/'];
-
+  
     if (/[0-9.]/.test(value)) {
-      const lastNumberMatch = this.rawDisplay.match(/(\d+(\.\d+)?)(?!.*\d)/);
-      const lastNumber = lastNumberMatch ? lastNumberMatch[0] : '';
-      const isDecimal = lastNumber.includes('.');
-
+      // 現在の数値ブロックを取得
       const currentBlockMatch = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
       const currentBlock = currentBlockMatch ? currentBlockMatch[1] : '';
       const [intPart = '', decimalPart = ''] = currentBlock.split('.');
-      const cleanInt = intPart.replace(/^[-0]*/, '');
+      const isDecimal = currentBlock.includes('.');
+      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, ''); // 先頭の0除去（ただし1桁は残す）
       const decimalLength = decimalPart.length;
-
+  
+      const totalDigits = cleanInt.length + decimalLength;
+  
+      // 条件チェック（入力を制限する条件）
+  
+      // 小数点の重複
       if (value === '.' && isDecimal) return;
-      if (value !== '.' && isDecimal && decimalLength >= 8) return;
-      if (/[0-9]/.test(value) && cleanInt.length >= 10 && !isDecimal) return;
-      if (/[0-9]/.test(value) && isDecimal && cleanInt.length >= 10) return;
-      if (/[0-9]/.test(value) && (cleanInt.length + decimalLength >= 17)) return;
-
+  
+      // 整数部が10桁に到達 → 小数はOKだけど整数はNG
+      if (/[0-9]/.test(value)) {
+        if (!isDecimal && cleanInt.length >= 10) return; // 整数で10桁以上
+        if (isDecimal && decimalLength >= 8) return;     // 小数で8桁以上
+        if (totalDigits >= 18) return;                   // 全体で18桁超過
+      }
+  
+      // 整数が10桁でも「.」はOK（小数がまだない場合）
+      if (value === '.' && !isDecimal && cleanInt.length <= 10) {
+        this.rawDisplay += value;
+        this.updateFormattedDisplays();
+        return;
+      }
+  
+      // OKなら追加
       this.rawDisplay += value;
     } else if (operators.includes(value) || value === '%') {
       const lastChar = this.rawDisplay.slice(-1);
@@ -72,14 +104,14 @@ export class AppComponent implements AfterViewInit {
         this.rawDisplay += value;
       }
     }
-
-    this.display = this.formatDisplay(this.rawDisplay);
+  
+    this.updateFormattedDisplays();
   }
-
-  deleteLast() {
-    this.rawDisplay = this.rawDisplay.slice(0, -1) || '0';
+  
+  private updateFormattedDisplays() {
     this.display = this.formatDisplay(this.rawDisplay);
-    this.adjustFontSize();
+    this.formula = this.formatDisplay(this.rawDisplay);
+    this.showFormula = true;
   }
 
   calculateResult() {
@@ -103,14 +135,7 @@ export class AppComponent implements AfterViewInit {
       this.formula = '';
       this.showFormula = false;
     }
-    this.adjustFontSize();
-  }
-
-  roundTo8Decimals(value: string): string {
-    const num = Number(value);
-    if (isNaN(num)) throw new Error('Invalid number');
-    const rounded = num.toFixed(8).replace(/\.?0+$/, '');
-    return rounded;
+  
   }
 
   evaluateExpression(expr: string): string {
@@ -119,7 +144,6 @@ export class AppComponent implements AfterViewInit {
     if (!rawTokens) throw new Error('Invalid expression');
 
     const tokens: string[] = [];
-
     for (let i = 0; i < rawTokens.length; i++) {
       const token = rawTokens[i];
       if (token === '-' && (i === 0 || ['+', '-', '*', '/'].includes(rawTokens[i - 1]))) {
@@ -185,88 +209,10 @@ export class AppComponent implements AfterViewInit {
     return this.roundTo8Decimals(result);
   }
 
-  addStrings(a: string, b: string): string {
-    let res = '', carry = 0;
-    a = a.replace(/^0+/, '').split('').reverse().join('');
-    b = b.replace(/^0+/, '').split('').reverse().join('');
-    let maxLen = Math.max(a.length, b.length);
-    for (let i = 0; i < maxLen; i++) {
-      let digitA = i < a.length ? +a[i] : 0;
-      let digitB = i < b.length ? +b[i] : 0;
-      let sum = digitA + digitB + carry;
-      res = (sum % 10) + res;
-      carry = Math.floor(sum / 10);
-    }
-    if (carry) res = carry + res;
-    return res.replace(/^0+/, '') || '0';
-  }
-
-  subtractStrings(a: string, b: string): string {
-    if (this.compareStrings(a, b) < 0) return '-' + this.subtractStrings(b, a);
-    let res = '', borrow = 0;
-    a = a.replace(/^0+/, '').split('').reverse().join('');
-    b = b.replace(/^0+/, '').split('').reverse().join('');
-    for (let i = 0; i < a.length; i++) {
-      let digitA = +a[i];
-      let digitB = i < b.length ? +b[i] : 0;
-      let sub = digitA - digitB - borrow;
-      if (sub < 0) {
-        sub += 10;
-        borrow = 1;
-      } else {
-        borrow = 0;
-      }
-      res = sub + res;
-    }
-    return res.replace(/^0+/, '') || '0';
-  }
-
-  multiplyStrings(a: string, b: string): string {
-    a = a.replace(/^0+/, '');
-    b = b.replace(/^0+/, '');
-    if (a === '0' || b === '0') return '0';
-
-    let result = Array(a.length + b.length).fill(0);
-    for (let i = a.length - 1; i >= 0; i--) {
-      for (let j = b.length - 1; j >= 0; j--) {
-        let mul = +a[i] * +b[j];
-        let p1 = i + j, p2 = i + j + 1;
-        let sum = mul + result[p2];
-        result[p2] = sum % 10;
-        result[p1] += Math.floor(sum / 10);
-      }
-    }
-
-    while (result[0] === 0) result.shift();
-    return result.join('');
-  }
-
-  divideStrings(a: string, b: string, precision: number): string {
-    if (b === '0') throw new Error('Divide by zero');
-
-    let dividend = BigInt(a);
-    let divisor = BigInt(b);
-    let quotient = dividend / divisor;
-    let remainder = dividend % divisor;
-
-    if (remainder === BigInt(0)) return quotient.toString();
-
-    let decimal = '';
-    for (let i = 0; i < precision && remainder !== BigInt(0); i++) {
-      remainder *= BigInt(10);
-      decimal += (remainder / divisor).toString();
-      remainder %= divisor;
-    }
-
-    decimal = decimal.replace(/0+$/, '');
-    return decimal ? `${quotient}.${decimal}` : quotient.toString();
-  }
-
-  compareStrings(a: string, b: string): number {
-    a = a.replace(/^0+/, '');
-    b = b.replace(/^0+/, '');
-    if (a.length !== b.length) return a.length - b.length;
-    return a.localeCompare(b);
+  roundTo8Decimals(value: string): string {
+    const num = Number(value);
+    if (isNaN(num)) throw new Error('Invalid number');
+    return num.toFixed(8).replace(/\.?0+$/, '');
   }
 
   formatNumber(value: string): string {
@@ -286,34 +232,154 @@ export class AppComponent implements AfterViewInit {
       this.rawDisplay = '-' + this.rawDisplay;
     }
     this.display = this.formatDisplay(this.rawDisplay);
-    this.adjustFontSize();
-  }
-
-  clearDisplay() {
-    this.rawDisplay = '0';
-    this.display = '0';
-    this.formula = '';
-    this.showFormula = false;
-    this.adjustFontSize();
-  }
-
-  adjustFontSize() {
-    requestAnimationFrame(() => {
-      if (!this.displayElement) return;
-      let fontSize = 48;
-      this.displayElement.nativeElement.style.fontSize = `${fontSize}px`;
-      while (this.displayElement.nativeElement.scrollWidth > this.displayElement.nativeElement.clientWidth - 5 && fontSize > 24) {
-        fontSize--;
-        this.displayElement.nativeElement.style.fontSize = `${fontSize}px`;
-      }
-    });
+    
   }
 
   formatDisplay(value: string): string {
-    return value.replace(/-?\d+(\.\d+)?/g, (match) => {
+    const formatted = value.replace(/-?\d+(\.\d+)?/g, (match) => {
       const [intPart, decimalPart] = match.split('.');
       const formattedInt = new Intl.NumberFormat('en-US').format(Number(intPart));
       return decimalPart ? `${formattedInt}.${decimalPart}` : formattedInt;
     });
+    return formatted.replace(/\*/g, '×');
   }
+
+  addStrings(a: string, b: string): string {
+    const isNegativeA = a.startsWith('-');
+    const isNegativeB = b.startsWith('-');
+    a = a.replace('-', '');
+    b = b.replace('-', '');
+  
+    if (isNegativeA && isNegativeB) {
+      return '-' + this.addStrings(a, b);
+    } else if (isNegativeA) {
+      return this.subtractStrings(b, a);
+    } else if (isNegativeB) {
+      return this.subtractStrings(a, b);
+    }
+  
+    let carry = 0;
+    let result = '';
+    const maxLen = Math.max(a.length, b.length);
+    a = a.padStart(maxLen, '0');
+    b = b.padStart(maxLen, '0');
+  
+    for (let i = maxLen - 1; i >= 0; i--) {
+      const sum = parseInt(a[i]) + parseInt(b[i]) + carry;
+      result = (sum % 10) + result;
+      carry = Math.floor(sum / 10);
+    }
+    if (carry) result = carry + result;
+    return result.replace(/^0+/, '') || '0';
+  }
+  
+  subtractStrings(a: string, b: string): string {
+    const cmp = this.compareStrings(a, b);
+    if (cmp === 0) return '0';
+    if (cmp < 0) return '-' + this.subtractStrings(b, a);
+  
+    let result = '';
+    let borrow = 0;
+    a = a.padStart(b.length, '0');
+  
+    for (let i = a.length - 1; i >= 0; i--) {
+      let diff = parseInt(a[i]) - (parseInt(b[i] || '0') + borrow);
+      if (diff < 0) {
+        diff += 10;
+        borrow = 1;
+      } else {
+        borrow = 0;
+      }
+      result = diff + result;
+    }
+  
+    return result.replace(/^0+/, '') || '0';
+  }
+  
+  multiplyStrings(a: string, b: string): string {
+    const isNegative = a.startsWith('-') !== b.startsWith('-');
+    a = a.replace('-', '');
+    b = b.replace('-', '');
+  
+    const result = Array(a.length + b.length).fill(0);
+  
+    for (let i = a.length - 1; i >= 0; i--) {
+      for (let j = b.length - 1; j >= 0; j--) {
+        const mul = parseInt(a[i]) * parseInt(b[j]);
+        const sum = mul + result[i + j + 1];
+        result[i + j + 1] = sum % 10;
+        result[i + j] += Math.floor(sum / 10);
+      }
+    }
+  
+    let resultStr = result.join('').replace(/^0+/, '') || '0';
+    return isNegative ? '-' + resultStr : resultStr;
+    
+  }
+
+  get displayFormula(): string {
+    return this.formula.replace(/\*/g, '×');
+  }
+  
+ 
+  
+  divideStrings(a: string, b: string, precision: number = 8): string {
+    if (b === '0') throw new Error('Divide by zero');
+  
+    const isNegative = a.startsWith('-') !== b.startsWith('-');
+    a = a.replace('-', '');
+    b = b.replace('-', '');
+  
+    let result = '';
+    let remainder = '';
+    let decimalPointAdded = false;
+    let decimalCount = 0;
+  
+    for (let i = 0; i < a.length || (decimalCount < precision && remainder !== '0'); i++) {
+      remainder += a[i] || '0';
+      remainder = remainder.replace(/^0+/, '') || '0';
+  
+      let quotient = 0;
+      while (this.compareStrings(remainder, b) >= 0) {
+        remainder = this.subtractStrings(remainder, b);
+        quotient++;
+      }
+  
+      result += quotient.toString();
+  
+      if (i >= a.length - 1 && !decimalPointAdded) {
+        result += '.';
+        decimalPointAdded = true;
+      }
+  
+      if (decimalPointAdded) {
+        decimalCount++;
+      }
+  
+      remainder += '0';
+    }
+  
+    result = result.replace(/\.?0+$/, '');
+    return isNegative && result !== '0' ? '-' + result : result;
+  }
+  
+  compareStrings(a: string, b: string): number {
+    a = a.replace(/^0+/, '') || '0';
+    b = b.replace(/^0+/, '') || '0';
+  
+    if (a.length !== b.length) {
+      return a.length > b.length ? 1 : -1;
+    }
+  
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) return a[i] > b[i] ? 1 : -1;
+    }
+    return 0;
+  }
+  
+  backspace(): void {
+    this.deleteLast();
+  }
+  
+
 }
