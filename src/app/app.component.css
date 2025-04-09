@@ -1,10 +1,15 @@
 :host {
-  display: flex;
+  display: block;
+  margin: 0;
+  padding: 0;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
   font-family: 'Segoe UI', sans-serif;
+  overflow: hidden;
 }
+
 
 .calculator {
   transform-origin: top right;
@@ -47,8 +52,6 @@
   line-height: normal; /* ← line-height を固定値にしないことで崩れ防止 *//* テキine-height: normal; /* ← line-height を固定値にしないことで崩れ防 */ /* ← 見た目は右寄せ */
 }
 
-
-
 .buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -70,4 +73,82 @@ button:hover {
   background-color: #5f93c0;
 }
 
+@media (max-width: 600px) {
+  :host {
+    display: block;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
 
+
+  .calculator {
+    height: 100dvh;
+    width: 100vw;
+    padding: 12px;
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* ← 上下に分配！ */
+    border-radius: 0;      /* ← 角丸なし */
+    
+  }
+
+  .display-area {
+    flex: 1; /* 上半分：表示エリア */
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+
+  .expression {
+    font-size: 18px;
+    text-align: right;
+    padding: 6px 12px;
+    margin: 16px 0 4px 0; /* ← 上に余白を確保！ */
+    min-height: 24px;
+    color: #ffffff;
+  }
+
+  
+  .result {
+    font-size: 28px;
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 10px;
+    min-height: 60px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .buttons {
+    flex: 1.2; /* 下半分：ボタンエリア */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    flex-grow: 1;   
+    padding: 14px;
+    box-sizing: border-box;
+  }
+
+  button {
+    font-size: 23px;
+    padding: 14px;
+    border-radius: 10px;
+    width: 100%;
+  }
+
+  button:active {
+    background-color: #5f93c0; /* タップ中だけ濃い色 */
+  }
+
+  .zero {
+    grid-column: span 1; /* PCと同じく1マスだけでOK */
+  }
+}

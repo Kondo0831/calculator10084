@@ -1,6 +1,8 @@
-<div class="calculator">
-  <div class="expression">{{ formula }}</div>
-  <div class="result">{{ display }}</div>
+<div class="calculator" tabindex="0" (click)="focusBack($event)">
+  <div class="display-area"></div>
+    <div class="expression">{{ formula }}</div>
+    <div class="result">{{ display }}</div>
+
   <div class="buttons">
     <!-- 一番上の行 -->
     <button (click)="clearDisplay()">C</button>
@@ -8,6 +10,7 @@
     <button (click)="onButtonClick('%')">%</button>
     <button (click)="appendValue('/')">÷</button>
 
+    <!-- 数字と演算子 -->
     <button (click)="appendValue('7')">7</button>
     <button (click)="appendValue('8')">8</button>
     <button (click)="appendValue('9')">9</button>
@@ -30,6 +33,7 @@
     <button (click)="calculateResult()">=</button>
   </div>
 </div>
+
 
 
 
