@@ -73,20 +73,42 @@ button:hover {
   background-color: #5f93c0;
 }
 
+button:active {
+  background-color: #d0d0d0;
+}
+
+button.active:hover {
+  background-color: #d0d0d0; /* クリック後の色を維持 */
+}
+
+button.pressed {
+  background-color: #5f93c0;
+  transform: scale(0.97);
+  transition: transform 0.05s, background-color 0.05s;
+}
+
 @media (max-width: 600px) {
   :host {
     display: block;
     height: 100dvh;
+    width: 100vw;
     margin: 0;
     padding: 0;
     overflow: hidden;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    overflow-x: hidden;
   }
 
 
   .calculator {
     height: 100dvh;
     width: 100vw;
-    padding: 12px;
+    padding: 0;
     margin: 0;
     box-sizing: border-box;
     overflow: hidden;
@@ -128,12 +150,12 @@ button:hover {
   }
 
   .buttons {
-    flex: 1.2; /* 下半分：ボタンエリア */
+    flex: 1; /* 下半分：ボタンエリア */
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 4px;
     flex-grow: 1;   
-    padding: 14px;
+    padding: 0;
     box-sizing: border-box;
   }
 
@@ -142,13 +164,26 @@ button:hover {
     padding: 14px;
     border-radius: 10px;
     width: 100%;
-  }
+    aspect-ratio: 1 / 1; /* ✅ 正方形にする */
+    transition: transform 0.05s ease, background-color 0.2s ease;
+}
+button:hover {
+  background-color: #f0f0f0;
+}
 
-  button:active {
-    background-color: #5f93c0; /* タップ中だけ濃い色 */
-  }
+button.active {
+  background-color: #d0d0d0;
+}
 
+button.active:hover {
+  background-color: #d0d0d0; /* クリック後の色を維持 */
+}
+
+button:active {
+  transform: scale(0.98);  /* タッチ時にボタンが少し縮む */
+}
+
+  }
   .zero {
     grid-column: span 1; /* PCと同じく1マスだけでOK */
   }
-}

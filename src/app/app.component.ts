@@ -38,32 +38,73 @@ export class AppComponent implements AfterViewInit {
   // キーボード操作
   // ==========================
   @HostListener('window:keydown', ['$event'])
-  handleKeyDown(event: KeyboardEvent) {
+  handleKeyDown(event: KeyboardEvent) : void {
     const key = event.key;
-
-    if (key === 'Enter' || key === '=') return this.calculateResult();
-    if (key === 'Backspace') return this.backspace();
-    if (key === '.') return this.appendValue('.');
-    if (key === '%') return this.inputPercent();
-    if (key === 'c' || key === 'C') return this.clearDisplay();
-    if (key === 'F9') return this.inputPlusMinus();
-    if (/^[0-9]$/.test(key)) return this.appendValue(key);
-
-    const ops: { [key: string]: string } = { '+': '+', '-': '-', '*': '*', '/': '/' };
-    if (key in ops) return this.appendValue(ops[key]);
+    const buttonKey = this.mapKeyToButton(key);
+    if (!buttonKey) return;
+  
+    this.handleButtonAction(buttonKey); // 共通の処理を呼び出し
   }
 
-  // ==========================
-  // ボタン操作
-  // ==========================
-  onButtonClick(value: string) {
-    switch (value) {
-      case '=': return this.calculateResult();
-      case '%': return this.inputPercent();
-      case '±': return this.inputPlusMinus();
-      default: return this.appendValue(value);
+  onButtonClick(value: string) : void {
+    this.handleButtonAction(value); // 共通の処理を呼び出し
+  }
+
+  handleButtonAction(key: string): void {
+  
+    this.highlightKey(key);
+    if (navigator.vibrate) navigator.vibrate(10);
+    const action = this.mapButtonToAction(key);
+    action();
+  }
+
+  highlightKey(key: string) {
+    const btn = document.querySelector(`button[data-key="${key}"]`) as HTMLElement;
+    if (btn) {
+      btn.classList.add('pressed');
+
+      setTimeout(() =>{  
+      btn.classList.remove('pressed');
+    }, 100);
     }
   }
+
+  mapKeyToButton(key: string): string {
+    switch (key) {
+      case 'Enter': return '=';
+      case 'Backspace': return '←'; // ←に合わせる（ボタンが⌫の場合は '⌫' に）
+      case 'c':
+      case 'C': return 'C';
+      case '*': return '*';
+      case '/': return '/';
+      case '+': return '+';
+      case '-': return '-';
+      case '.': return '.';
+      case '%': return '%';
+      case 'F9': return '±';
+      default: return /^[0-9]$/.test(key) ? key : '';
+    }
+  }
+
+  mapButtonToAction(value: string): () => void {
+    const actions: { [key: string]: () => void } = {
+      '=': () => this.calculateResult(),
+      '%': () => this.inputPercent(),
+      '±': () => this.inputPlusMinus(),
+      '←': () => this.backspace(),
+      'C': () => this.clearDisplay(),
+    };
+  
+    // デフォルトは appendValue
+    return actions[value] || (() => this.appendValue(value));
+  }
+
+  
+
+
+
+  
+
 
   onBackOrClear() {
     if (this.rawDisplay.length <= 1 || this.rawDisplay === '0') {
@@ -130,6 +171,8 @@ export class AppComponent implements AfterViewInit {
   backspace() {
     this.rawDisplay = this.rawDisplay.slice(0, -1) || '0';
     this.updateFormattedDisplays();
+    // アニメーション
+   
   }
 
   clearDisplay() {
@@ -139,6 +182,7 @@ export class AppComponent implements AfterViewInit {
     this.showFormula = false;
     this.lastOperator = null;
     this.lastOperand = null;
+    
   }
 
   // ==========================
@@ -324,3 +368,4 @@ export class AppComponent implements AfterViewInit {
     return num.toFixed(8).replace(/\.?0+$/, '');
   }
 }
+
