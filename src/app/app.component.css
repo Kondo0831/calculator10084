@@ -69,23 +69,36 @@ button {
   transition: background 0.2s ease;
 }
 
+
+button.pressed {
+  background-color: #5f93c0;
+  transform: scale(0.97);
+  transition: transform 0.05s ease, background-color 0.2s ease;
+}
+
+/* activeクラスの変更: 色の変化のみ */
+button.active {
+  background-color: #d0d0d0;
+}
+
+/* hoverとactive状態を分けて管理 */
 button:hover {
   background-color: #5f93c0;
 }
 
 button:active {
-  background-color: #d0d0d0;
+  transform: scale(0.98);  /* ボタンが縮む */
+  background-color: #d0d0d0;  /* 押下時の色を設定 */
 }
 
-button.active:hover {
-  background-color: #d0d0d0; /* クリック後の色を維持 */
-}
-
-button.pressed {
+/* ボタンの「押された」アニメーション */
+button.pressed:active {
+  transform: scale(0.97); /* クリック中に「さらにへこむ」 */
   background-color: #5f93c0;
-  transform: scale(0.97);
-  transition: transform 0.05s, background-color 0.05s;
 }
+
+
+
 
 @media (max-width: 600px) {
   :host {
