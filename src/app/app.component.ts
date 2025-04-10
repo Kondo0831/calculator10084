@@ -19,6 +19,8 @@ export class AppComponent implements AfterViewInit {
   showFormula = false;
   maxDigits = 10;
   justCalculated = false;
+  lastOperator: string | null = null;
+  lastOperand: string | null = null;
 
   // ==========================
   // 初期フォーカス制御
@@ -135,6 +137,8 @@ export class AppComponent implements AfterViewInit {
     this.display = '0';
     this.formula = '';
     this.showFormula = false;
+    this.lastOperator = null;
+    this.lastOperand = null;
   }
 
   // ==========================
@@ -172,7 +176,11 @@ export class AppComponent implements AfterViewInit {
   // ==========================
   calculateResult() {
     try {
-      const result = this.evaluateExpression(this.rawDisplay);
+
+      // ===== 繰り返し演算のチェック =====
+    if (this.justCalculated && this.lastOperator && this.lastOperand) {
+      const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
+      const result = this.evaluateExpression(repeatedExpr);
       const formatted = this.formatNumber(result);
 
       if (formatted === 'Overflow') {
@@ -181,6 +189,31 @@ export class AppComponent implements AfterViewInit {
         this.formula = '';
         this.showFormula = false;
       } else {
+        this.display = formatted;
+        this.formula = this.formatDisplay(repeatedExpr) + ' =';
+        this.showFormula = true;
+        this.rawDisplay = result;
+        this.justCalculated = true;
+      }
+
+      return;
+    }
+
+      const result = this.evaluateExpression(this.rawDisplay);
+      const formatted = this.formatNumber(result);
+      
+
+      if (formatted === 'Overflow') {
+        this.display = 'Overflow';
+        this.rawDisplay = '0';
+        this.formula = '';
+        this.showFormula = false;
+      } else {
+      // 🧠 直前の演算子と右辺を保存（繰り返しのため）
+      const match = this.rawDisplay.match(/([+\-*/])([^\+\-\*/]+)$/);
+       this.lastOperator = match ? match[1] : null;
+       this.lastOperand = match ? match[2] : null;
+
         this.display = formatted;
         this.formula = this.formatDisplay(this.rawDisplay) + ' =';
         this.showFormula = true;
