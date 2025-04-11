@@ -1,40 +1,41 @@
-<div class="calculator" tabindex="0" (click)="focusBack($event)">
+<div class="calculator">
   <div class="display-area">
-    <div class="expression">{{ formula }}</div>
-    <div class="result">{{ display }}</div>
-  </div>
+    <div class="expression" #expressionText>{{ formula }}</div>
+    <div class="result" #resultText>
+      {{ display }}
+    </div>
+  </div> 
 
   <div class="buttons">
     <!-- 一番上の行 -->
-    <button (click)="clearDisplay()" data-key="C">C</button>
-    <button (click)="inputPlusMinus()" data-key="F9">±</button>
-    <button (click)="onButtonClick('%')" data-key="%">%</button>
-    <button (click)="appendValue('/')" data-key="/">÷</button>
+    <button class="special" (click)="clearDisplay()" data-key="C">C</button>
+    <button class="special" (click)="inputPlusMinus()" data-key="F9">±</button>
+    <button class="special" (click)="onButtonClick('%')" data-key="%">%</button>
+    <button class="special" (click)="appendValue('/')" data-key="/">÷</button>
 
     <!-- 数字と演算子 -->
-    <button (click)="appendValue('7')" data-key="7">7</button>
-    <button (click)="appendValue('8')" data-key="8">8</button>
-    <button (click)="appendValue('9')" data-key="9">9</button>
-    <button (click)="appendValue('*')" data-key="*">×</button>
+    <button class="number" (click)="appendValue('7')" data-key="7">7</button>
+    <button class="number" (click)="appendValue('8')" data-key="8">8</button>
+    <button class="number" (click)="appendValue('9')" data-key="9">9</button>
+    <button class="special" (click)="appendValue('*')" data-key="*">×</button>
 
-    <button (click)="appendValue('4')" data-key="4">4</button>
-    <button (click)="appendValue('5')" data-key="5">5</button>
-    <button (click)="appendValue('6')" data-key="6">6</button>
-    <button (click)="appendValue('-')" data-key="-">-</button>
+    <button class="number" (click)="appendValue('4')" data-key="4">4</button>
+    <button class="number" (click)="appendValue('5')" data-key="5">5</button>
+    <button class="number" (click)="appendValue('6')" data-key="6">6</button>
+    <button class="special" (click)="appendValue('-')" data-key="-">-</button>
 
-    <button (click)="appendValue('1')" data-key="1">1</button>
-    <button (click)="appendValue('2')" data-key="2">2</button>
-    <button (click)="appendValue('3')" data-key="3">3</button>
-    <button (click)="appendValue('+')" data-key="+">+</button>
+    <button class="number" (click)="appendValue('1')" data-key="1">1</button>
+    <button class="number" (click)="appendValue('2')" data-key="2">2</button>
+    <button class="number" (click)="appendValue('3')" data-key="3">3</button>
+    <button class="special" (click)="appendValue('+')" data-key="+">+</button>
 
     <!-- 下段 -->
-    <button class="zero" (click)="appendValue('0')" data-key="0">0</button>
-    <button (click)="backspace()" data-key="←">←</button>
-    <button (click)="appendValue('.')" data-key=".">.</button>
-    <button (click)="calculateResult()" data-key="=">=</button>
+    <button class="number" (click)="appendValue('0')" data-key="0">0</button>
+    <button class="number" (click)="appendValue('.')" data-key=".">.</button>
+    <button class="number" (click)="backspace()" data-key="←">←</button>
+    <button class="equal" (click)="calculateResult()" data-key="=">=</button>
   </div>
 </div>
-
 
 
 

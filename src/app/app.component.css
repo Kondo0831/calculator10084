@@ -1,202 +1,98 @@
-:host {
-  display: block;
-  margin: 0;
-  padding: 0;
-  justify-content: center;
-  align-items: center;
-  height: 100dvh;
-  width: 100vw;
-  font-family: 'Segoe UI', sans-serif;
+.calculator {
+  background: linear-gradient(145deg, #eae8e8, #d1cfcf); /* グラデーション効果 */
+  border-radius: 8px;
+  padding: 20px;
+  width: 350px;
+  max-width: 90%;
+  height: 500px;
+  outline: none;  /* フォーカス時に外枠を表示しない */
   overflow: hidden;
 }
 
-
-.calculator {
-  transform-origin: top right;
-  background: #000000;
-  border-radius: 30px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  padding: 30px;
-  width: 400px;
+.calculator:focus {
+  outline: none;  /* フォーカス時の枠線を消去 */
 }
 
 .expression {
   font-size: 20px;
-  color: #fdf9f9;
+  color: #716f6f;
   text-align: right;
-  white-space: normal;
-  word-break: break-word; 
-  overflow-wrap: anywhere;
-  margin-bottom: 4px;
-  min-height: 20px;
+  padding: 10px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+  direction: rtl;    
+  unicode-bidi: plaintext; 
+  max-width: 100%;  
+  height: 30px;  /* ← 高さを固定 */
 }
 
 .result {
-  font-size: 26px;
+  font-size: 36px;
+  font-weight: bold;
   text-align: right;
-  margin-top: 25px;
-  margin-bottom: 30px;
-  padding: 10px;
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1);
-  overflow-x: auto;  
-  overflow-y: hidden;      /* ← はみ出た部分を隠す */
-  white-space: nowrap;         /* ← ここがポイント */
-  text-align: left;   
-  display: flex;
-  justify-content: flex-end;  
-  align-items: center; /* ← これが重要。上下中央に固定 */
-  height: 70px; /* 適宜調整 */
-  line-height: 70px;
-  line-height: normal; /* ← line-height を固定値にしないことで崩れ防止 *//* テキine-height: normal; /* ← line-height を固定値にしないことで崩れ防 */ /* ← 見た目は右寄せ */
+  padding: 20px 10px 30px;
+  background-color:  #eae8e8;  
+  margin-bottom: 12px;
+  white-space: nowrap;
+  direction: ltr;     
+  overflow: hidden;
+  height: 40px;
 }
 
 .buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 4px;
 }
 
 button {
-  font-size: 24px; 
-  padding: 16px;
+  font-size: 20px;
+  padding: 20px;
   border: none;
-  border-radius: 10%;
-  background-color: #adc8dd;
-  color: white;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
 }
 
+/* 数字ボタンのデザイン */
+.buttons button.number {
+  background-color: #ffffff;
+  color: #131313;
+}
 
-button.pressed {
-  background-color: #5f93c0;
+/* 演算・特殊系（C, ±, %, ÷, ×, -, +） */
+.buttons button.special {
+  background-color: #f4a261; 
+  color: #382c8f;
+}
+
+/* イコール（=）だけ別色で目立たせる */
+.buttons button.equal {
+  background-color: #2a9d8f;
+  color: #fff; 
+  font-weight: bold;
+}
+
+/* 押された状態（ボタンが縮む） */
+button.number:active, button.number.pressed {
+  transform: scale(0.98); /* 押されたときに縮む */
+  background-color: #d0d0d0 !important;
+  transition: transform 0.05s, background-color 0.2s; /* 押されたときの色を確実に適用 */
+}
+
+button.special:active, button.special.pressed {
+  transform: scale(0.98); /* 押されたときに縮む */
+  background-color: #f2d3ad !important; /* 押されたときの色を確実に適用 */
+}
+
+/* キーボード入力時に反応を見せるために、ボタンを押すようにアニメーションを追加 */
+button.equal:active, button.equal.pressed{
+  background-color: #1b201d !important;
   transform: scale(0.97);
-  transition: transform 0.05s ease, background-color 0.2s ease;
-}
-
-/* activeクラスの変更: 色の変化のみ */
-button.active {
-  background-color: #d0d0d0;
-}
-
-/* hoverとactive状態を分けて管理 */
-button:hover {
-  background-color: #5f93c0;
-}
-
-button:active {
-  transform: scale(0.98);  /* ボタンが縮む */
-  background-color: #d0d0d0;  /* 押下時の色を設定 */
-}
-
-/* ボタンの「押された」アニメーション */
-button.pressed:active {
-  transform: scale(0.97); /* クリック中に「さらにへこむ」 */
-  background-color: #5f93c0;
+  transition: transform 0.05s, background-color 0.2s;
 }
 
 
-
-
-@media (max-width: 600px) {
-  :host {
-    display: block;
-    height: 100dvh;
-    width: 100vw;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    width: 100vw;
-    overflow-x: hidden;
-  }
-
-
-  .calculator {
-    height: 100dvh;
-    width: 100vw;
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between; /* ← 上下に分配！ */
-    border-radius: 0;      /* ← 角丸なし */
-    
-  }
-
-  .display-area {
-    flex: 1; /* 上半分：表示エリア */
-    padding: 16px 12px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  
-
-  .expression {
-    font-size: 18px;
-    text-align: right;
-    padding: 6px 12px;
-    margin: 16px 0 4px 0; /* ← 上に余白を確保！ */
-    min-height: 24px;
-    color: #ffffff;
-  }
-
-  
-  .result {
-    font-size: 28px;
-    padding: 10px;
-    background: #ffffff;
-    border-radius: 10px;
-    min-height: 60px;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  .buttons {
-    flex: 1; /* 下半分：ボタンエリア */
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    flex-grow: 1;   
-    padding: 0;
-    box-sizing: border-box;
-  }
-
-  button {
-    font-size: 23px;
-    padding: 14px;
-    border-radius: 10px;
-    width: 100%;
-    aspect-ratio: 1 / 1; /* ✅ 正方形にする */
-    transition: transform 0.05s ease, background-color 0.2s ease;
-}
-button:hover {
-  background-color: #f0f0f0;
-}
-
-button.active {
-  background-color: #d0d0d0;
-}
-
-button.active:hover {
-  background-color: #d0d0d0; /* クリック後の色を維持 */
-}
-
-button:active {
-  transform: scale(0.98);  /* タッチ時にボタンが少し縮む */
-}
-
-  }
-  .zero {
-    grid-column: span 1; /* PCと同じく1マスだけでOK */
-  }

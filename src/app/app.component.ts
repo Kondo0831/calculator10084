@@ -1,4 +1,4 @@
-import { Component, HostListener, AfterViewInit } from '@angular/core';
+import { Component, HostListener, AfterViewInit,ViewChild,ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -10,6 +10,24 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements AfterViewInit {
+  @ViewChild('resultText') resultTextRef!: ElementRef;
+  @ViewChild('expressionText') expressionTextRef!: ElementRef
+
+  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 14) {
+    const parent = element.parentElement;
+    if (!parent) return;
+  
+    let fontSize = maxFontSize;
+    element.style.fontSize = fontSize + 'px';
+  
+    while (element.scrollWidth > parent.clientWidth && fontSize > minFontSize) {
+      fontSize--;
+      element.style.fontSize = fontSize + 'px';
+    }
+  }
+  
+    
+
   // ==========================
   // 状態管理
   // ==========================
@@ -192,7 +210,17 @@ export class AppComponent implements AfterViewInit {
     this.display = this.formatDisplay(this.rawDisplay);
     this.formula = this.display;
     this.showFormula = true;
+  
+    setTimeout(() => {
+      if (this.resultTextRef) {
+        this.autoResizeFont(this.resultTextRef.nativeElement);
+      }
+      if (this.expressionTextRef) {
+        this.autoResizeFont(this.expressionTextRef.nativeElement, 20, 10);
+      }
+    });
   }
+
 
   formatDisplay(value: string): string {
     return value.replace(/-?\d+(\.\d+)?%?/g, (num) => {
@@ -247,6 +275,8 @@ export class AppComponent implements AfterViewInit {
       const formatted = this.formatNumber(result);
       
 
+      
+
       if (formatted === 'Overflow') {
         this.display = 'Overflow';
         this.rawDisplay = '0';
@@ -263,6 +293,9 @@ export class AppComponent implements AfterViewInit {
         this.showFormula = true;
         this.rawDisplay = result;
         this.justCalculated = true;
+        if (this.resultTextRef) {
+          this.resultTextRef.nativeElement.style.fontSize = '32px';
+        }
       }
     } catch {
       this.display = 'Error';
@@ -368,4 +401,3 @@ export class AppComponent implements AfterViewInit {
     return num.toFixed(8).replace(/\.?0+$/, '');
   }
 }
-
