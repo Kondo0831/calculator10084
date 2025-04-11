@@ -4,11 +4,9 @@ html, body {
   background-color: #868585;
   font-family: 'Segoe UI', sans-serif;
   display: flex;
-  justify-content: left; /* 横方向中央揃え */
-  align-items: normal; /* 縦方向中央揃え */
-  height: 100vh; /* ビューポートの高さに合わせて */
+  justify-content: flex-start;
+  align-items: flex-start;
   overflow: hidden;
-  box-shadow: 10px
 
 }
 

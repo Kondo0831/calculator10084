@@ -12,6 +12,7 @@ import { RouterModule } from '@angular/router';
 export class AppComponent implements AfterViewInit {
   @ViewChild('resultText') resultTextRef!: ElementRef;
   @ViewChild('expressionText') expressionTextRef!: ElementRef
+  @ViewChild('someElement') someElementRef!: ElementRef;
 
   autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 14) {
     const parent = element.parentElement;
@@ -26,7 +27,9 @@ export class AppComponent implements AfterViewInit {
     }
   }
   
-    
+  removeFocus() {
+    this.someElementRef.nativeElement.blur();
+  }
 
   // ==========================
   // 状態管理
@@ -39,6 +42,7 @@ export class AppComponent implements AfterViewInit {
   justCalculated = false;
   lastOperator: string | null = null;
   lastOperand: string | null = null;
+  isClear = true; // C/CEの切り替え用フラグ
 
   // ==========================
   // 初期フォーカス制御
@@ -60,6 +64,10 @@ export class AppComponent implements AfterViewInit {
     const key = event.key;
     const buttonKey = this.mapKeyToButton(key);
     if (!buttonKey) return;
+    if (key === 'Delete') {
+      this.clearEntry();  // DeleteキーでCEの動作を行う
+      return;
+    }
   
     this.handleButtonAction(buttonKey); // 共通の処理を呼び出し
   }
@@ -69,6 +77,11 @@ export class AppComponent implements AfterViewInit {
   }
 
   handleButtonAction(key: string): void {
+    if (key === 'CE') {
+      this.isClear = true; // CEボタンを押したときは全消しフラグをtrueに
+    } else if (key === 'C') {
+      this.isClear = false; // Cボタンを押したときは入力クリアに
+    }
   
     this.highlightKey(key);
     if (navigator.vibrate) navigator.vibrate(10);
@@ -91,6 +104,7 @@ export class AppComponent implements AfterViewInit {
     switch (key) {
       case 'Enter': return '=';
       case 'Backspace': return '←'; // ←に合わせる（ボタンが⌫の場合は '⌫' に）
+      case 'Delete': return 'CE'; // DeleteでCEに対応
       case 'c':
       case 'C': return 'C';
       case '*': return '*';
@@ -100,6 +114,7 @@ export class AppComponent implements AfterViewInit {
       case '.': return '.';
       case '%': return '%';
       case 'F9': return '±';
+      case 'r': return '√';
       default: return /^[0-9]$/.test(key) ? key : '';
     }
   }
@@ -111,14 +126,82 @@ export class AppComponent implements AfterViewInit {
       '±': () => this.inputPlusMinus(),
       '←': () => this.backspace(),
       'C': () => this.clearDisplay(),
+      'CE': () => this.clearEntry(), // CEボタンを追加
+      '√': () => this.inputSquareRoot(), // 追加された処理
     };
   
     // デフォルトは appendValue
     return actions[value] || (() => this.appendValue(value));
   }
 
-  
+  clearLastInput() {
+     // 最後の入力を削除（CEボタン）
+  if (this.rawDisplay.length <= 1 || this.rawDisplay === '0') {
+    this.rawDisplay = '0';
+  } else {
+    this.rawDisplay = this.rawDisplay.slice(0, -1);
+  }
+  this.updateFormattedDisplays();
+   
+  }
 
+  clearDisplay() {
+    // 全ての入力をクリア
+    this.rawDisplay = '0';
+    this.display = '0';
+    this.formula = '';
+    this.showFormula = false;
+    this.lastOperator = null;
+    this.lastOperand = null;
+   
+  }
+
+  clearEntry() {
+    const match = this.rawDisplay.match(/(.*?)([\d.]+%?)$/);
+  
+    if (match) {
+      const [, before, last] = match;
+      // 式の先頭にマイナスがある場合に対処
+      if (before === '' && last.startsWith('-')) {
+        this.rawDisplay = '0';
+      } else {
+        this.rawDisplay = before || '0';
+      }
+    } else {
+      this.rawDisplay = '0';
+    }
+  
+    this.updateFormattedDisplays();
+  }
+  
+// ==========================
+// √ 計算処理
+// ==========================
+inputSquareRoot() {
+  const match = this.rawDisplay.match(/(\d+(\.\d+)?%?|\.\d+)$/);
+  if (!match) return;
+
+  const lastNumber = match[0];
+  const idx = this.rawDisplay.lastIndexOf(lastNumber);
+  const parsed = parseFloat(lastNumber);
+
+  if (isNaN(parsed) || parsed < 0) {
+    this.display = 'Error';
+    this.rawDisplay = '0';
+    this.formula = '';
+    this.showFormula = false;
+    return;
+  }
+
+  const sqrtResult = Math.sqrt(parsed);
+  const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());
+
+  // 数式内で√数を直接置き換える
+  this.rawDisplay =
+    this.rawDisplay.slice(0, idx) + sqrtStr + this.rawDisplay.slice(idx + lastNumber.length);
+
+  this.updateFormattedDisplays();
+}
 
 
   
@@ -138,6 +221,7 @@ export class AppComponent implements AfterViewInit {
   appendValue(value: string) {
     const operators = ['+', '-', '*', '/'];
 
+    if (/[0-9]/.test(value) && this.rawDisplay.endsWith('%')) return;
     if (this.justCalculated && /[0-9.]/.test(value)) {
       this.rawDisplay = '';
       this.display = '';
@@ -152,6 +236,8 @@ export class AppComponent implements AfterViewInit {
       this.rawDisplay = '-';
       return this.updateFormattedDisplays();
     }
+    this.isClear = false;
+  
 
     if (/[0-9.]/.test(value)) {
       const match = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
@@ -182,7 +268,7 @@ export class AppComponent implements AfterViewInit {
         this.rawDisplay += value;
       }
     }
-
+    this.isClear = false;
     this.updateFormattedDisplays();
   }
 
@@ -191,16 +277,6 @@ export class AppComponent implements AfterViewInit {
     this.updateFormattedDisplays();
     // アニメーション
    
-  }
-
-  clearDisplay() {
-    this.rawDisplay = '0';
-    this.display = '0';
-    this.formula = '';
-    this.showFormula = false;
-    this.lastOperator = null;
-    this.lastOperand = null;
-    
   }
 
   // ==========================
@@ -248,55 +324,63 @@ export class AppComponent implements AfterViewInit {
   // ==========================
   calculateResult() {
     try {
-
-      // ===== 繰り返し演算のチェック =====
-    if (this.justCalculated && this.lastOperator && this.lastOperand) {
-      const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
-      const result = this.evaluateExpression(repeatedExpr);
-      const formatted = this.formatNumber(result);
-
-      if (formatted === 'Overflow') {
-        this.display = 'Overflow';
-        this.rawDisplay = '0';
-        this.formula = '';
-        this.showFormula = false;
-      } else {
+      const lastChar = this.rawDisplay.slice(-1);
+      const operators = ['+', '-', '*', '/'];
+  
+      // ----- 演算子で終わってるとき → 直前の数値で演算 -----
+      if (operators.includes(lastChar)) {
+        const beforeOp = this.rawDisplay.slice(0, -1);
+        const lastNumMatch = beforeOp.match(/(\d+(\.\d+)?)(?!.*\d)/);
+        const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
+  
+        this.lastOperator = lastChar;
+        this.lastOperand = lastNumber;
+  
+        const repeatedExpr = beforeOp + lastChar + lastNumber;
+        const result = this.evaluateExpression(repeatedExpr);
+        const formatted = this.formatNumber(result);
+  
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
-        this.showFormula = true;
         this.rawDisplay = result;
         this.justCalculated = true;
+        this.showFormula = true;
+        return;
       }
-
-      return;
-    }
-
+  
+      // ----- 通常の繰り返し演算（前回の operator/operand 使用） -----
+      if (this.justCalculated && this.lastOperator && this.lastOperand) {
+        const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
+        const result = this.evaluateExpression(repeatedExpr);
+        const formatted = this.formatNumber(result);
+  
+        this.display = formatted;
+        this.formula = this.formatDisplay(repeatedExpr) + ' =';
+        this.rawDisplay = result;
+        this.justCalculated = true;
+        this.showFormula = true;
+        return;
+      }
+  
+      // ----- 通常計算 -----
       const result = this.evaluateExpression(this.rawDisplay);
       const formatted = this.formatNumber(result);
-      
-
-      
-
-      if (formatted === 'Overflow') {
-        this.display = 'Overflow';
-        this.rawDisplay = '0';
-        this.formula = '';
-        this.showFormula = false;
-      } else {
-      // 🧠 直前の演算子と右辺を保存（繰り返しのため）
+  
+      // 最後の演算子とオペランドを記憶
       const match = this.rawDisplay.match(/([+\-*/])([^\+\-\*/]+)$/);
-       this.lastOperator = match ? match[1] : null;
-       this.lastOperand = match ? match[2] : null;
-
-        this.display = formatted;
-        this.formula = this.formatDisplay(this.rawDisplay) + ' =';
-        this.showFormula = true;
-        this.rawDisplay = result;
-        this.justCalculated = true;
-        if (this.resultTextRef) {
-          this.resultTextRef.nativeElement.style.fontSize = '32px';
-        }
+      this.lastOperator = match ? match[1] : null;
+      this.lastOperand = match ? match[2] : null;
+  
+      this.display = formatted;
+      this.formula = this.formatDisplay(this.rawDisplay) + ' =';
+      this.rawDisplay = result;
+      this.justCalculated = true;
+      this.showFormula = true;
+  
+      if (this.resultTextRef) {
+        this.resultTextRef.nativeElement.style.fontSize = '32px';
       }
+  
     } catch {
       this.display = 'Error';
       this.rawDisplay = '0';
@@ -358,6 +442,7 @@ export class AppComponent implements AfterViewInit {
   
     this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
     this.updateFormattedDisplays();
+   
   }
     
 
@@ -374,6 +459,7 @@ export class AppComponent implements AfterViewInit {
     this.rawDisplay =
       this.rawDisplay.slice(0, idx) + withPercent + this.rawDisplay.slice(idx + lastNumber.length);
     this.updateFormattedDisplays();
+    
   }
 
   // ==========================
@@ -401,3 +487,4 @@ export class AppComponent implements AfterViewInit {
     return num.toFixed(8).replace(/\.?0+$/, '');
   }
 }
+
