@@ -9,3 +9,6 @@ html, body {
   height: 100vh;
   overflow: hidden;             /* スクロール可にしておく（hiddenは非推奨） */
 }
+.calculator.calculator * {
+  font-family: 'Share Tech Mono', monospace;
+}

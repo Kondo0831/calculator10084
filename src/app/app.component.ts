@@ -26,7 +26,34 @@ export class AppComponent implements AfterViewInit {
       element.style.fontSize = fontSize + 'px';
     }
   }
-  
+  // M+ : 現在の表示値をメモリに加算
+memoryAdd() {
+  const current = parseFloat(this.rawDisplay);
+  if (!isNaN(current)) {
+    this.memoryValue += current;
+  }
+}
+
+// M- : 現在の表示値をメモリから減算
+memorySubtract() {
+  const current = parseFloat(this.rawDisplay);
+  if (!isNaN(current)) {
+    this.memoryValue -= current;
+  }
+}
+
+// MR : メモリの値を表示に反映
+memoryRecall() {
+  this.rawDisplay = this.memoryValue.toString();
+  this.updateFormattedDisplays();
+}
+
+// MC : メモリをクリア
+memoryClear() {
+  this.memoryValue = 0;
+}
+
+
   removeFocus() {
     this.someElementRef.nativeElement.blur();
   }
@@ -36,6 +63,7 @@ export class AppComponent implements AfterViewInit {
   // ==========================
   display = '0';
   rawDisplay = '0';
+
   formula = '';
   showFormula = false;
   maxDigits = 10;
@@ -43,7 +71,15 @@ export class AppComponent implements AfterViewInit {
   lastOperator: string | null = null;
   lastOperand: string | null = null;
   isClear = true; // C/CEの切り替え用フラグ
+  memoryValue: number = 0;  // メモリに保持する値
+  sqrtActive: boolean = false;  // √が押された後かどうかのフラグ
 
+  buildFormulaDisplay(raw: string): string {
+    // 式の見た目だけ調整（0-8 → -8 にする）
+    const simplified = raw.replace(/^0\-/, '-'); 
+    return this.formatDisplay(simplified);
+  }
+  
   // ==========================
   // 初期フォーカス制御
   // ==========================
@@ -78,16 +114,30 @@ export class AppComponent implements AfterViewInit {
 
   handleButtonAction(key: string): void {
     if (key === 'CE') {
-      this.isClear = true; // CEボタンを押したときは全消しフラグをtrueに
-    } else if (key === 'C') {
-      this.isClear = false; // Cボタンを押したときは入力クリアに
+      if (this.justCalculated) {
+        // 「＝」ボタンを押した後の「CE」→ 完全リセット
+        this.clearDisplay();  
+      } else {
+        // 通常の「CE」→ 現在の入力を削除
+        this.clearEntry();  
+      }
+      return;
     }
   
+    if (key === 'C') {
+      this.clearDisplay();  // 「C」ボタンで完全なリセット
+      return;
+    }
+  
+    this.isClear = false;  // 「C」や「CE」以外の場合の処理
     this.highlightKey(key);
     if (navigator.vibrate) navigator.vibrate(10);
     const action = this.mapButtonToAction(key);
     action();
   }
+  
+  
+  
 
   highlightKey(key: string) {
     const btn = document.querySelector(`button[data-key="${key}"]`) as HTMLElement;
@@ -128,6 +178,10 @@ export class AppComponent implements AfterViewInit {
       'C': () => this.clearDisplay(),
       'CE': () => this.clearEntry(), // CEボタンを追加
       '√': () => this.inputSquareRoot(), // 追加された処理
+      'M+': () => this.memoryAdd(),
+      'M-': () => this.memorySubtract(),
+      'MR': () => this.memoryRecall(),
+      'MC': () => this.memoryClear(),
     };
   
     // デフォルトは appendValue
@@ -147,16 +201,30 @@ export class AppComponent implements AfterViewInit {
 
   clearDisplay() {
     // 全ての入力をクリア
-    this.rawDisplay = '0';
-    this.display = '0';
-    this.formula = '';
-    this.showFormula = false;
+    this.rawDisplay = '0'; // 計算結果の表示を初期化
+    this.display = '0'; // 表示内容も初期化
+    this.formula = ''; // 式の履歴もクリア
+    this.showFormula = false; // 式表示を無効化
+    this.lastOperator = null; // 最後の演算子もクリア
+    this.lastOperand = null; // 最後のオペランドもクリア
+    this.memoryValue = 0; // メモリもクリア
+    this.justCalculated = false; // 計算後のフラグもリセット
+    this.isClear = false;  // クリアフラグをリセット
+    this.resetHistory(); // 計算履歴をリセットするメソッド
+
+  this.updateFormattedDisplays();  // 表示更新
+  }
+
+  resetHistory() {
     this.lastOperator = null;
     this.lastOperand = null;
-   
   }
 
   clearEntry() {
+    if (this.justCalculated) {
+      // ＝の後でCEが押された場合、完全にリセットする
+      this.clearDisplay();  // Cボタンの動作に合わせる
+    } else {
     const match = this.rawDisplay.match(/(.*?)([\d.]+%?)$/);
   
     if (match) {
@@ -170,10 +238,9 @@ export class AppComponent implements AfterViewInit {
     } else {
       this.rawDisplay = '0';
     }
-  
     this.updateFormattedDisplays();
   }
-  
+}
 // ==========================
 // √ 計算処理
 // ==========================
@@ -193,15 +260,24 @@ inputSquareRoot() {
     return;
   }
 
+  // √の計算結果を求める
   const sqrtResult = Math.sqrt(parsed);
-  const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());
+  const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());  // 結果を小数点8桁に丸める
 
-  // 数式内で√数を直接置き換える
+  // 数式内で√の表記を変更（例: 9 → √9）
   this.rawDisplay =
-    this.rawDisplay.slice(0, idx) + sqrtStr + this.rawDisplay.slice(idx + lastNumber.length);
+    this.rawDisplay.slice(0, idx) + `√${lastNumber}` + this.rawDisplay.slice(idx + lastNumber.length);
 
-  this.updateFormattedDisplays();
+  // expression部分を表示（√2のように）
+  this.display = sqrtStr;  // 計算結果を表示
+  this.formula = this.rawDisplay + ' =';  // 数式（√2）の状態を表示
+  this.showFormula = true;  // 式表示を有効化
+
+  // rawDisplayには計算結果ではなく、式（√2）を保持
+  this.updateFormattedDisplays();  // 表示を更新
 }
+
+
 
 
   
@@ -287,18 +363,18 @@ inputSquareRoot() {
   // ==========================
   updateFormattedDisplays() {
     this.display = this.formatDisplay(this.rawDisplay);
-    this.formula = this.display;
-    this.showFormula = true;
-  
-    setTimeout(() => {
-      if (this.resultTextRef) {
-        this.autoResizeFont(this.resultTextRef.nativeElement);
-      }
-      if (this.expressionTextRef) {
-        this.autoResizeFont(this.expressionTextRef.nativeElement, 20, 10);
-      }
-    });
-  }
+  this.formula = this.buildFormulaDisplay(this.rawDisplay); // ← expression 表示用
+  this.showFormula = true;
+
+  setTimeout(() => {
+    if (this.resultTextRef) {
+      this.autoResizeFont(this.resultTextRef.nativeElement);
+    }
+    if (this.expressionTextRef) {
+      this.autoResizeFont(this.expressionTextRef.nativeElement, 20, 10);
+    }
+  });
+}
 
 
   formatDisplay(value: string): string {
@@ -327,22 +403,23 @@ inputSquareRoot() {
   // ==========================
   calculateResult() {
     try {
+      this.justCalculated = true;
       const lastChar = this.rawDisplay.slice(-1);
       const operators = ['+', '-', '*', '/'];
-  
-      // ----- 演算子で終わってるとき → 直前の数値で演算 -----
+    
+      // ----- 演算子で終わっている場合 → 直前の数値で演算 -----
       if (operators.includes(lastChar)) {
         const beforeOp = this.rawDisplay.slice(0, -1);
         const lastNumMatch = beforeOp.match(/(\d+(\.\d+)?)(?!.*\d)/);
         const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
-  
+    
         this.lastOperator = lastChar;
         this.lastOperand = lastNumber;
-  
+    
         const repeatedExpr = beforeOp + lastChar + lastNumber;
         const result = this.evaluateExpression(repeatedExpr);
         const formatted = this.formatNumber(result);
-  
+    
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
@@ -350,13 +427,13 @@ inputSquareRoot() {
         this.showFormula = true;
         return;
       }
-  
+    
       // ----- 通常の繰り返し演算（前回の operator/operand 使用） -----
       if (this.justCalculated && this.lastOperator && this.lastOperand) {
         const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
         const result = this.evaluateExpression(repeatedExpr);
         const formatted = this.formatNumber(result);
-  
+    
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
@@ -364,90 +441,131 @@ inputSquareRoot() {
         this.showFormula = true;
         return;
       }
-  
+    
       // ----- 通常計算 -----
-      const result = this.evaluateExpression(this.rawDisplay);
+      let result = this.rawDisplay;
+    
+      // ここで、√の計算後に％を無効にする部分を追加
+      if (this.sqrtActive) {
+        // もし%ボタンが押されたら無効化
+        const operatorIndex = this.rawDisplay.indexOf('%');
+        if (operatorIndex > -1) {
+          return; // % があっても処理しない
+        }
+      }
+    
+      // ここで √ の計算を行う部分
+      if (this.rawDisplay.includes('√')) {
+        result = this.rawDisplay.replace(/√(-?\d+(\.\d+)?)/g, (match, p1) => {
+          const number = parseFloat(p1);
+          if (number < 0) {
+            throw new Error('Negative square root');
+          }
+          this.sqrtActive = true;  // √を計算したので、√がアクティブになった
+          return Math.sqrt(number).toString(); // √x を計算し、その結果を返す
+        });
+      }
+    
+      // ここで、-8 - (-8) の演算を扱うために修正を加える
+      // 負の数の計算時に余分な括弧を追加して式を解釈しやすくする
+      // 例えば `-8 - (-8)` を `-8 - ( -8 )` として計算をスムーズにする
+      result = result.replace(/(\d+|\.\d+)?\s*-\s*\(\s*(\d+|\.\d+)\s*\)/g, (match, p1, p2) => {
+        const num1 = parseFloat(p1 || '0');
+        const num2 = parseFloat(p2);
+        return (num1 - num2).toString(); // -8 - (-8) -> 0 のように計算する
+      });
+    
+      // 式全体を評価
+      result = this.evaluateExpression(result);
       const formatted = this.formatNumber(result);
-  
+    
       // 最後の演算子とオペランドを記憶
       const match = this.rawDisplay.match(/([+\-*/])([^\+\-\*/]+)$/);
       this.lastOperator = match ? match[1] : null;
       this.lastOperand = match ? match[2] : null;
-  
+    
+      // 結果を表示
       this.display = formatted;
       this.formula = this.formatDisplay(this.rawDisplay) + ' =';
       this.rawDisplay = result;
       this.justCalculated = true;
       this.showFormula = true;
-  
+    
       if (this.resultTextRef) {
         this.resultTextRef.nativeElement.style.fontSize = '32px';
       }
-  
-    } catch {
+    
+      // √を計算後、状態をリセット
+      this.sqrtActive = false;  // 計算終了後は√アクティブをリセット
+    
+    } catch (error) {
       this.display = 'Error';
       this.rawDisplay = '0';
       this.formula = '';
       this.showFormula = false;
     }
   }
-
+  
   evaluateExpression(expr: string): string {
     const tokens: string[] = [];
     const regex = /[+\-*/()]|\d+(?:\.\d+)?%?|\.\d+/g;
     let match;
+  
     while ((match = regex.exec(expr)) !== null) {
       tokens.push(match[0]);
     }
-
+  
+    // パーセント記号を処理（例: 10% → (10/100)）
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i].endsWith('%')) {
         const number = tokens[i].slice(0, -1);
         tokens[i] = `(${number}/100)`;
       }
     }
-
-    for (let i = 0; i < tokens.length; i++) {
-      if (
-        tokens[i] === '-' &&
-        (i === 0 || ['+', '-', '*', '/', '('].includes(tokens[i - 1]))
-      ) {
-        tokens[i + 1] = '-' + tokens[i + 1];
-        tokens.splice(i, 1);
-      }
-    }
-
     const finalExpr = tokens.join('');
+
     const result = Function(`'use strict'; return (${finalExpr})`)();
     return this.roundTo8Decimals(result.toString());
+
+
   }
+
+
 
   // ==========================
   // ± / % 入力
   // ==========================
   inputPlusMinus() {
-   if (this.rawDisplay === '0' || this.rawDisplay === '') {
-    this.rawDisplay = '-'; // 最初に「0」の場合に「-」を設定
+    // 現在表示されている rawDisplay が 0 または 空の場合は、何もせず終了
+    if (this.rawDisplay === '0' || this.rawDisplay === '') {
+      this.rawDisplay = '0';  // もし何も表示されていなければ、0を設定
+      this.updateFormattedDisplays();
+      return;
+    }
+  
+    // 最後の入力が演算子の場合、「-」を入力する
+    const lastChar = this.rawDisplay.slice(-1);
+    if (['+', '-', '*', '/'].includes(lastChar)) {
+      this.rawDisplay += '-';
+      this.updateFormattedDisplays();
+      return;
+    }
+  
+    // 数字部分を抽出して符号反転処理を行う
+    const match = this.rawDisplay.match(/(-?\d*\.?\d+%?)(?!.*\d)/);
+    if (!match) return;  // 数字が見つからなければ終了
+  
+    const number = match[1];
+    const index = this.rawDisplay.lastIndexOf(number);
+  
+    // 符号を反転させる処理
+    const stripped = number.replace(/^[-]+/, '');
+    const toggled = number.startsWith('-') ? stripped : '-' + stripped;
+  
+    // rawDisplayに新しい値をセットして更新
+    this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
     this.updateFormattedDisplays();
-    return;
   }
-
-  // 現在の数値が負であれば、符号を反転
-  const match = this.rawDisplay.match(/(\-?\d*\.?\d+%?|\-?\d+%?)(?!.*\d)/); // 最後の数値部分を抽出
-  if (!match) return;
-
-  const number = match[1];
-  const index = this.rawDisplay.lastIndexOf(number);
-
-  // マイナス符号をリセットしてから反転
-  const stripped = number.replace(/^[-]+/, ''); // 先頭の '-' を削除
-  const toggled = number.startsWith('-') ? stripped : '-' + stripped; // 反転した符号をつける
-
-  // 反転した結果を表示
-  this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
-  this.updateFormattedDisplays();
-  }
-    
 
   inputPercent() {
     if (this.rawDisplay.endsWith('%')) return;

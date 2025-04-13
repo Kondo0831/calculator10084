@@ -7,10 +7,14 @@
       </div> 
 
       <div class="buttons">
+        <button class="plus" data-key="MC" (click)="onButtonClick('MC')">MC</button>
+        <button class="plus" data-key="MR" (click)="onButtonClick('MR')">MR</button>
+        <button class="plus" data-key="M+" (click)="onButtonClick('M+')">M+</button>
+        <button class="plus" data-key="M-" (click)="onButtonClick('M-')">M-</button>
         <!-- 1段目 -->
         <button class="special" (click)="clearDisplay()" data-key="C">C</button>
         <button class="special" (click)="clearEntry()" data-key="CE">CE</button>
-        <button class="special" (click)="backspace()" data-key="←">←</button>
+        <button class="special" (click)="backspace()" data-key="⌫">⌫</button>
         <button class="special" (click)="appendValue('/')" data-key="/">÷</button>
 
         <!-- 2段目 -->
