@@ -14,7 +14,7 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('expressionText') expressionTextRef!: ElementRef
   @ViewChild('someElement') someElementRef!: ElementRef;
 
-  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 14) {
+  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 19) {
     const parent = element.parentElement;
     if (!parent) return;
   
@@ -227,18 +227,21 @@ inputSquareRoot() {
       this.display = '';
       this.justCalculated = false;
     }
-
+  
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
+      // '0' の場合、'0'を削除して新しい値を追加
       this.rawDisplay = '';
     }
-
+  
     if (value === '-' && this.rawDisplay === '0') {
+      // もし '- ' が押されていて、表示が '0' の場合には '-'
       this.rawDisplay = '-';
       return this.updateFormattedDisplays();
     }
+  
     this.isClear = false;
   
-
+    // 数字や小数点の場合
     if (/[0-9.]/.test(value)) {
       const match = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
       const currentBlock = match ? match[1] : '';
@@ -246,7 +249,7 @@ inputSquareRoot() {
       const isDecimal = currentBlock.includes('.');
       const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
       const totalDigits = cleanInt.length + decimalPart.length;
-
+  
       if (value === '.' && isDecimal) return;
       if (/[0-9]/.test(value)) {
         if (!isDecimal && cleanInt.length >= 10) return;
@@ -257,7 +260,7 @@ inputSquareRoot() {
         this.rawDisplay += value;
         return this.updateFormattedDisplays();
       }
-
+  
       this.rawDisplay += value;
     } else if (operators.includes(value)) {
       this.justCalculated = false;
@@ -423,26 +426,26 @@ inputSquareRoot() {
   // ± / % 入力
   // ==========================
   inputPlusMinus() {
-    if (this.rawDisplay === '0' || this.rawDisplay === '') {
-      this.rawDisplay = '-';
-      this.updateFormattedDisplays();
-      return;
-    }
-  
-    // 最後の数値部分をマッチ（符号や % 含む）
-    const match = this.rawDisplay.match(/(\-?\d*\.?\d+%?|\-?\d+%?)(?!.*\d)/);
-    if (!match) return;
-  
-    const number = match[1];
-    const index = this.rawDisplay.lastIndexOf(number);
-  
-    // マイナス符号をリセットしてから反転
-    const stripped = number.replace(/^[-]+/, '');
-    const toggled = number.startsWith('-') ? stripped : '-' + stripped;
-  
-    this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
+   if (this.rawDisplay === '0' || this.rawDisplay === '') {
+    this.rawDisplay = '-'; // 最初に「0」の場合に「-」を設定
     this.updateFormattedDisplays();
-   
+    return;
+  }
+
+  // 現在の数値が負であれば、符号を反転
+  const match = this.rawDisplay.match(/(\-?\d*\.?\d+%?|\-?\d+%?)(?!.*\d)/); // 最後の数値部分を抽出
+  if (!match) return;
+
+  const number = match[1];
+  const index = this.rawDisplay.lastIndexOf(number);
+
+  // マイナス符号をリセットしてから反転
+  const stripped = number.replace(/^[-]+/, ''); // 先頭の '-' を削除
+  const toggled = number.startsWith('-') ? stripped : '-' + stripped; // 反転した符号をつける
+
+  // 反転した結果を表示
+  this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
+  this.updateFormattedDisplays();
   }
     
 

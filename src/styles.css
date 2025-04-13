@@ -1,13 +1,11 @@
 html, body {
   margin: 0;
-  padding: 0;
-  background-color: #868585;
+  padding: 50px 20px; /* 上下40px, 左右20pxの余白 */
+  background: linear-gradient(to bottom, #f4f4f4, #e0e0e0);
   font-family: 'Segoe UI', sans-serif;
   display: flex;
-  justify-content: flex-start;
-  align-items: flex-start;
-  overflow: hidden;
-
+  justify-content: center;    /* 計算機を中央に表示 */
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;             /* スクロール可にしておく（hiddenは非推奨） */
 }
-
-

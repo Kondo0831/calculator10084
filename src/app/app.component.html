@@ -1,48 +1,47 @@
-<div class="calculator">
-  <div class="display-area">
-    <div class="expression" #expressionText>{{ formula }}</div>
-    <div class="result" #resultText>{{ display }}</div>
-  </div> 
+<body>
+  <div class="calculator-wrapper">
+    <div class="calculator">
+      <div class="display-area">
+        <div class="expression" #expressionText>{{ formula }}</div>
+        <div class="result" #resultText>{{ display }}</div>
+      </div> 
 
-  <div class="buttons">
-    <!-- 1段目 -->
-    <button class="special" (click)="clearEntry()" data-key="CE">CE</button>
-    <button class="special" (click)="clearDisplay()" data-key="C">C</button>
-    <button class="special" (click)="backspace()" data-key="←">←</button>
-    <button class="special" (click)="appendValue('/')" data-key="/">÷</button>
+      <div class="buttons">
+        <!-- 1段目 -->
+        <button class="special" (click)="clearDisplay()" data-key="C">C</button>
+        <button class="special" (click)="clearEntry()" data-key="CE">CE</button>
+        <button class="special" (click)="backspace()" data-key="←">←</button>
+        <button class="special" (click)="appendValue('/')" data-key="/">÷</button>
 
-    <!-- 2段目 -->
-    <button class="special" (click)="inputSquareRoot()" data-key="√">√</button>
-    <button class="special" (click)="inputPlusMinus()" data-key="F9">±</button>
-    <button class="special" (click)="onButtonClick('%')" data-key="%">%</button>
-    <button class="special" (click)="appendValue('*')" data-key="*">×</button>
+        <!-- 2段目 -->
+        <button class="special" (click)="inputSquareRoot()" data-key="√">√</button>
+        <button class="special" (click)="inputPlusMinus()" data-key="F9">±</button>
+        <button class="special" (click)="onButtonClick('%')" data-key="%">%</button>
+        <button class="special" (click)="appendValue('*')" data-key="*">×</button>
 
-    <!-- 3段目 -->
-    <button class="number" (click)="appendValue('7')" data-key="7">7</button>
-    <button class="number" (click)="appendValue('8')" data-key="8">8</button>
-    <button class="number" (click)="appendValue('9')" data-key="9">9</button>
-    <button class="special" (click)="appendValue('-')" data-key="-">-</button>
+        <!-- 3段目 -->
+        <button class="number" (click)="appendValue('7')" data-key="7">7</button>
+        <button class="number" (click)="appendValue('8')" data-key="8">8</button>
+        <button class="number" (click)="appendValue('9')" data-key="9">9</button>
+        <button class="special" (click)="appendValue('-')" data-key="-">-</button>
 
-    <!-- 4段目 -->
-    <button class="number" (click)="appendValue('4')" data-key="4">4</button>
-    <button class="number" (click)="appendValue('5')" data-key="5">5</button>
-    <button class="number" (click)="appendValue('6')" data-key="6">6</button>
-    <button class="special" (click)="appendValue('+')" data-key="+">+</button>
+        <!-- 4段目 -->
+        <button class="number" (click)="appendValue('4')" data-key="4">4</button>
+        <button class="number" (click)="appendValue('5')" data-key="5">5</button>
+        <button class="number" (click)="appendValue('6')" data-key="6">6</button>
+        <button class="special" (click)="appendValue('+')" data-key="+">+</button>
 
-    <!-- 5段目 -->
-    <button class="number" (click)="appendValue('1')" data-key="1">1</button>
-    <button class="number" (click)="appendValue('2')" data-key="2">2</button>
-    <button class="number" (click)="appendValue('3')" data-key="3">3</button>
-    <button class="equal double-height" (click)="calculateResult()" data-key="=">=</button>
+        <!-- 5段目 -->
+        <button class="number" (click)="appendValue('1')" data-key="1">1</button>
+        <button class="number" (click)="appendValue('2')" data-key="2">2</button>
+        <button class="number" (click)="appendValue('3')" data-key="3">3</button>
+        <button class="equal double-height" (click)="calculateResult()" data-key="=">=</button>
 
-    <!-- 6段目（最下段） -->
-    <button class="number double-width" (click)="appendValue('0')" data-key="0">0</button>
-    <button class="number" (click)="appendValue('.')" data-key=".">.</button>
-    <div></div> <!-- ダミー要素：グリッドバランス取る用 -->
+        <!-- 6段目（最下段） -->
+        <button class="number double-width" (click)="appendValue('0')" data-key="0">0</button>
+        <button class="number" (click)="appendValue('.')" data-key=".">.</button>
+        <span></span> <!-- ダミー要素：グリッドバランス用 -->
+      </div>
+    </div>
   </div>
-</div>
-
-
-
-
-
+</body>
