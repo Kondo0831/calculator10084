@@ -245,13 +245,13 @@ memoryClear() {
 // √ 計算処理
 // ==========================
 inputSquareRoot() {
-  const match = this.rawDisplay.match(/(\d+(\.\d+)?%?|\.\d+)$/);
+  const match = this.rawDisplay.match(/(\d+(\.\d+)?%?|\.\d+)$/); // Match the last number or fractional part
   if (!match) return;
 
-  const lastNumber = match[0];
-  const idx = this.rawDisplay.lastIndexOf(lastNumber);
-  const parsed = parseFloat(lastNumber);
+  const lastNumber = match[0]; // The last number in the raw display
+  const idx = this.rawDisplay.lastIndexOf(lastNumber); // Position of the number
 
+  const parsed = parseFloat(lastNumber);
   if (isNaN(parsed) || parsed < 0) {
     this.display = 'Error';
     this.rawDisplay = '0';
@@ -260,24 +260,21 @@ inputSquareRoot() {
     return;
   }
 
-  // √の計算結果を求める
+  // Replace the number with √x
+  this.rawDisplay = this.rawDisplay.slice(0, idx) + `√${lastNumber}`;
+
+  // Calculate the square root
   const sqrtResult = Math.sqrt(parsed);
-  const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());  // 結果を小数点8桁に丸める
+  const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());
 
-  // 数式内で√の表記を変更（例: 9 → √9）
-  this.rawDisplay =
-    this.rawDisplay.slice(0, idx) + `√${lastNumber}` + this.rawDisplay.slice(idx + lastNumber.length);
+  // Update displays
+  this.display = sqrtStr;
+  this.formula = this.rawDisplay + ' =';  // Show the expression with √
+  this.showFormula = true;  // Show the formula
 
-  // expression部分を表示（√2のように）
-  this.display = sqrtStr;  // 計算結果を表示
-  this.formula = this.rawDisplay + ' =';  // 数式（√2）の状態を表示
-  this.showFormula = true;  // 式表示を有効化
-
-  // rawDisplayには計算結果ではなく、式（√2）を保持
-  this.updateFormattedDisplays();  // 表示を更新
+  // Update formatted displays
+  this.updateFormattedDisplays();
 }
-
-
 
 
   
@@ -314,6 +311,17 @@ inputSquareRoot() {
       this.rawDisplay = '-';
       return this.updateFormattedDisplays();
     }
+
+    if (value === '-' && /√[\d.]+$/.test(this.rawDisplay)) {
+      const match = this.rawDisplay.match(/√[\d.]+$/);
+      if (match) {
+        const sqrtExpr = match[0];
+        const idx = this.rawDisplay.lastIndexOf(sqrtExpr);
+        this.rawDisplay =
+          this.rawDisplay.slice(0, idx) + '-'+ sqrtExpr;
+        return this.updateFormattedDisplays();
+      }
+    }
   
     this.isClear = false;
   
@@ -336,7 +344,7 @@ inputSquareRoot() {
         this.rawDisplay += value;
         return this.updateFormattedDisplays();
       }
-  
+     
       this.rawDisplay += value;
     } else if (operators.includes(value)) {
       this.justCalculated = false;
@@ -402,103 +410,61 @@ inputSquareRoot() {
   // 計算処理
   // ==========================
   calculateResult() {
+   
     try {
       this.justCalculated = true;
       const lastChar = this.rawDisplay.slice(-1);
       const operators = ['+', '-', '*', '/'];
-    
-      // ----- 演算子で終わっている場合 → 直前の数値で演算 -----
+  
       if (operators.includes(lastChar)) {
         const beforeOp = this.rawDisplay.slice(0, -1);
         const lastNumMatch = beforeOp.match(/(\d+(\.\d+)?)(?!.*\d)/);
         const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
-    
+  
         this.lastOperator = lastChar;
         this.lastOperand = lastNumber;
-    
+  
         const repeatedExpr = beforeOp + lastChar + lastNumber;
         const result = this.evaluateExpression(repeatedExpr);
         const formatted = this.formatNumber(result);
-    
+  
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
-        this.justCalculated = true;
         this.showFormula = true;
         return;
       }
-    
-      // ----- 通常の繰り返し演算（前回の operator/operand 使用） -----
+  
       if (this.justCalculated && this.lastOperator && this.lastOperand) {
         const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
         const result = this.evaluateExpression(repeatedExpr);
         const formatted = this.formatNumber(result);
-    
+  
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
-        this.justCalculated = true;
         this.showFormula = true;
         return;
       }
-    
-      // ----- 通常計算 -----
-      let result = this.rawDisplay;
-    
-      // ここで、√の計算後に％を無効にする部分を追加
-      if (this.sqrtActive) {
-        // もし%ボタンが押されたら無効化
-        const operatorIndex = this.rawDisplay.indexOf('%');
-        if (operatorIndex > -1) {
-          return; // % があっても処理しない
-        }
-      }
-    
-      // ここで √ の計算を行う部分
-      if (this.rawDisplay.includes('√')) {
-        result = this.rawDisplay.replace(/√(-?\d+(\.\d+)?)/g, (match, p1) => {
-          const number = parseFloat(p1);
-          if (number < 0) {
-            throw new Error('Negative square root');
-          }
-          this.sqrtActive = true;  // √を計算したので、√がアクティブになった
-          return Math.sqrt(number).toString(); // √x を計算し、その結果を返す
-        });
-      }
-    
-      // ここで、-8 - (-8) の演算を扱うために修正を加える
-      // 負の数の計算時に余分な括弧を追加して式を解釈しやすくする
-      // 例えば `-8 - (-8)` を `-8 - ( -8 )` として計算をスムーズにする
-      result = result.replace(/(\d+|\.\d+)?\s*-\s*\(\s*(\d+|\.\d+)\s*\)/g, (match, p1, p2) => {
-        const num1 = parseFloat(p1 || '0');
-        const num2 = parseFloat(p2);
-        return (num1 - num2).toString(); // -8 - (-8) -> 0 のように計算する
+  
+      let expression = this.rawDisplay;
+  
+      // √ の処理：√x を Math.sqrt(x) に変換
+      expression = expression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
+        return `Math.sqrt(${num})`;
       });
-    
-      // 式全体を評価
-      result = this.evaluateExpression(result);
+  
+      // パーセントを除算に変換（例: 50% → (50/100)）
+      expression = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+  
+      const result = this.evaluateExpression(expression);
       const formatted = this.formatNumber(result);
-    
-      // 最後の演算子とオペランドを記憶
-      const match = this.rawDisplay.match(/([+\-*/])([^\+\-\*/]+)$/);
-      this.lastOperator = match ? match[1] : null;
-      this.lastOperand = match ? match[2] : null;
-    
-      // 結果を表示
+  
       this.display = formatted;
       this.formula = this.formatDisplay(this.rawDisplay) + ' =';
       this.rawDisplay = result;
-      this.justCalculated = true;
       this.showFormula = true;
-    
-      if (this.resultTextRef) {
-        this.resultTextRef.nativeElement.style.fontSize = '32px';
-      }
-    
-      // √を計算後、状態をリセット
-      this.sqrtActive = false;  // 計算終了後は√アクティブをリセット
-    
-    } catch (error) {
+    } catch (e) {
       this.display = 'Error';
       this.rawDisplay = '0';
       this.formula = '';
@@ -506,31 +472,20 @@ inputSquareRoot() {
     }
   }
   
+    
   evaluateExpression(expr: string): string {
-    const tokens: string[] = [];
-    const regex = /[+\-*/()]|\d+(?:\.\d+)?%?|\.\d+/g;
-    let match;
-  
-    while ((match = regex.exec(expr)) !== null) {
-      tokens.push(match[0]);
-    }
-  
-    // パーセント記号を処理（例: 10% → (10/100)）
-    for (let i = 0; i < tokens.length; i++) {
-      if (tokens[i].endsWith('%')) {
-        const number = tokens[i].slice(0, -1);
-        tokens[i] = `(${number}/100)`;
-      }
-    }
-    const finalExpr = tokens.join('');
+    // Replace the √ with Math.sqrt for calculation
+  expr = expr.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
+    return `Math.sqrt(${num})`;
+  });
 
-    const result = Function(`'use strict'; return (${finalExpr})`)();
-    return this.roundTo8Decimals(result.toString());
+  // Handle percent conversion
+  expr = expr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
 
-
-  }
-
-
+  // Split the expression into tokens and evaluate
+  const result = Function(`'use strict'; return (${expr})`)();
+  return this.roundTo8Decimals(result.toString());
+}
 
   // ==========================
   // ± / % 入力
