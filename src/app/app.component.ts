@@ -376,7 +376,7 @@ inputSquareRoot() {
       } else {
         resultEl.style.fontSize = ''; // まず空にしてリセット
         void resultEl.offsetWidth;    // ← reflow させてから再設定
-        resultEl.style.fontSize = '36px'; // 固定サイズ
+        resultEl.style.fontSize = '32px'; // 固定サイズ
       }
     }
     this.display = this.formatDisplay(this.rawDisplay);
