@@ -489,7 +489,6 @@ inputSquareRoot() {
     }
   }
   
-    
   evaluateExpression(expr: string): string {
      // Handle percent conversion
   // パーセント記号を分母に100を付け加えて処理する
