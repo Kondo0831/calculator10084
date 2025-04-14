@@ -26,6 +26,8 @@ export class AppComponent implements AfterViewInit {
       element.style.fontSize = fontSize + 'px';
     }
   }
+
+ isNumberEntered = false; // Track if a number has been entered 
   // M+ : 現在の表示値をメモリに加算
 memoryAdd() {
   const current = parseFloat(this.rawDisplay);
@@ -245,13 +247,24 @@ memoryClear() {
 // √ 計算処理
 // ==========================
 inputSquareRoot() {
-  const match = this.rawDisplay.match(/(\d+(\.\d+)?%?|\.\d+)$/); // Match the last number or fractional part
+  // 数字が入力されていない場合は処理しない
+  if (this.rawDisplay === '0' || this.rawDisplay === '') {
+    return;
+  }
+
+  const match = this.rawDisplay.match(/(\d+(\.\d+)?%?|\.\d+)$/); // 数字を抽出
   if (!match) return;
 
-  const lastNumber = match[0]; // The last number in the raw display
-  const idx = this.rawDisplay.lastIndexOf(lastNumber); // Position of the number
+  const lastNumber = match[0]; // 最後の数字を取得
+  const idx = this.rawDisplay.lastIndexOf(lastNumber); // 数字の位置を取得
 
-  const parsed = parseFloat(lastNumber);
+  let parsed = parseFloat(lastNumber);
+
+  if (lastNumber.endsWith('%')) {
+    // パーセントを数値に変換（90% -> 0.9）
+    parsed = parsed / 100;
+  }
+
   if (isNaN(parsed) || parsed < 0) {
     this.display = 'Error';
     this.rawDisplay = '0';
@@ -260,21 +273,22 @@ inputSquareRoot() {
     return;
   }
 
-  // Replace the number with √x
+  // √を付ける
   this.rawDisplay = this.rawDisplay.slice(0, idx) + `√${lastNumber}`;
 
-  // Calculate the square root
+  // √の計算
   const sqrtResult = Math.sqrt(parsed);
   const sqrtStr = this.roundTo8Decimals(sqrtResult.toString());
 
-  // Update displays
   this.display = sqrtStr;
-  this.formula = this.rawDisplay + ' =';  // Show the expression with √
-  this.showFormula = true;  // Show the formula
+  this.formula = this.rawDisplay + ' =';
+  this.showFormula = true;
 
-  // Update formatted displays
   this.updateFormattedDisplays();
 }
+  
+
+ 
 
 
   
@@ -294,68 +308,49 @@ inputSquareRoot() {
   appendValue(value: string) {
     const operators = ['+', '-', '*', '/'];
 
+    // 直前が ) なら数字は追加できない
+    if (/[0-9.]/.test(value) && this.rawDisplay.endsWith(')')) return;
+  
+    // %の後に数字は追加できない
     if (/[0-9]/.test(value) && this.rawDisplay.endsWith('%')) return;
+  
+    // 計算直後なら新しく入力し直す
     if (this.justCalculated && /[0-9.]/.test(value)) {
       this.rawDisplay = '';
       this.display = '';
       this.justCalculated = false;
     }
   
+    // 最初のゼロの除去
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
-      // '0' の場合、'0'を削除して新しい値を追加
       this.rawDisplay = '';
     }
   
-    if (value === '-' && this.rawDisplay === '0') {
-      // もし '- ' が押されていて、表示が '0' の場合には '-'
-      this.rawDisplay = '-';
-      return this.updateFormattedDisplays();
-    }
-
-    if (value === '-' && /√[\d.]+$/.test(this.rawDisplay)) {
-      const match = this.rawDisplay.match(/√[\d.]+$/);
-      if (match) {
-        const sqrtExpr = match[0];
-        const idx = this.rawDisplay.lastIndexOf(sqrtExpr);
-        this.rawDisplay =
-          this.rawDisplay.slice(0, idx) + '-'+ sqrtExpr;
-        return this.updateFormattedDisplays();
-      }
-    }
+    // 小数点の制限（1つだけ）
+    if (value === '.' && /\.\d*$/.test(this.rawDisplay)) return;
   
-    this.isClear = false;
-  
-    // 数字や小数点の場合
-    if (/[0-9.]/.test(value)) {
-      const match = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
-      const currentBlock = match ? match[1] : '';
-      const [intPart = '', decimalPart = ''] = currentBlock.split('.');
-      const isDecimal = currentBlock.includes('.');
+    // 小数桁と整数桁の制限（必要に応じて調整）
+    const match = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
+    const currentBlock = match ? match[1] : '';
+    const [intPart = '', decimalPart = ''] = currentBlock.split('.');
+    if (/[0-9]/.test(value)) {
       const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
-      const totalDigits = cleanInt.length + decimalPart.length;
+      if (cleanInt.length + decimalPart.length >= 18) return;
+    }
   
-      if (value === '.' && isDecimal) return;
-      if (/[0-9]/.test(value)) {
-        if (!isDecimal && cleanInt.length >= 10) return;
-        if (isDecimal && decimalPart.length >= 8) return;
-        if (totalDigits >= 18) return;
-      }
-      if (value === '.' && !isDecimal && cleanInt.length <= 10) {
-        this.rawDisplay += value;
-        return this.updateFormattedDisplays();
-      }
-     
-      this.rawDisplay += value;
-    } else if (operators.includes(value)) {
-      this.justCalculated = false;
+    // 演算子の連続防止（例：++, --, etc. は最後の演算子を置き換え）
+    if (operators.includes(value)) {
       const lastChar = this.rawDisplay.slice(-1);
       if (operators.includes(lastChar)) {
         this.rawDisplay = this.rawDisplay.slice(0, -1) + value;
-      } else {
-        this.rawDisplay += value;
+        return this.updateFormattedDisplays();
       }
     }
+  
+    // 入力追加
+    this.rawDisplay += value;
     this.isClear = false;
+  
     this.updateFormattedDisplays();
   }
 
@@ -418,7 +413,7 @@ inputSquareRoot() {
   
       if (operators.includes(lastChar)) {
         const beforeOp = this.rawDisplay.slice(0, -1);
-        const lastNumMatch = beforeOp.match(/(\d+(\.\d+)?)(?!.*\d)/);
+        const lastNumMatch = beforeOp.match(/(√?-?\d+(\.\d+)?)(?!.*\d)/);
         const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
   
         this.lastOperator = lastChar;
@@ -474,53 +469,68 @@ inputSquareRoot() {
   
     
   evaluateExpression(expr: string): string {
-    // Replace the √ with Math.sqrt for calculation
-  expr = expr.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
-    return `Math.sqrt(${num})`;
-  });
-
-  // Handle percent conversion
+     // Handle percent conversion
+  // パーセント記号を分母に100を付け加えて処理する
   expr = expr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+  // Handle square root (√) conversion
+  // √の後の数値にMath.sqrt()を適用する
+  expr = expr.replace(/√(\d+(\.\d+)?)/g, 'Math.sqrt($1)');
 
   // Split the expression into tokens and evaluate
   const result = Function(`'use strict'; return (${expr})`)();
+
+  // 結果を小数点以下8桁まで四捨五入して返す
   return this.roundTo8Decimals(result.toString());
 }
 
-  // ==========================
-  // ± / % 入力
-  // ==========================
-  inputPlusMinus() {
-    // 現在表示されている rawDisplay が 0 または 空の場合は、何もせず終了
-    if (this.rawDisplay === '0' || this.rawDisplay === '') {
-      this.rawDisplay = '0';  // もし何も表示されていなければ、0を設定
-      this.updateFormattedDisplays();
-      return;
-    }
-  
-    // 最後の入力が演算子の場合、「-」を入力する
-    const lastChar = this.rawDisplay.slice(-1);
-    if (['+', '-', '*', '/'].includes(lastChar)) {
-      this.rawDisplay += '-';
-      this.updateFormattedDisplays();
-      return;
-    }
-  
-    // 数字部分を抽出して符号反転処理を行う
-    const match = this.rawDisplay.match(/(-?\d*\.?\d+%?)(?!.*\d)/);
-    if (!match) return;  // 数字が見つからなければ終了
-  
-    const number = match[1];
-    const index = this.rawDisplay.lastIndexOf(number);
-  
-    // 符号を反転させる処理
-    const stripped = number.replace(/^[-]+/, '');
-    const toggled = number.startsWith('-') ? stripped : '-' + stripped;
-  
-    // rawDisplayに新しい値をセットして更新
-    this.rawDisplay = this.rawDisplay.slice(0, index) + toggled + this.rawDisplay.slice(index + number.length);
-    this.updateFormattedDisplays();
+invertSign() {
+  // √ の符号反転に対応
+  const sqrtMatches = Array.from(this.rawDisplay.matchAll(/(-?)√(\d+(\.\d+)?)/g));
+  if (sqrtMatches.length > 0) {
+    const lastMatch = sqrtMatches[sqrtMatches.length - 1];
+    const fullExpr = lastMatch[0];
+    const matchIndex = lastMatch.index!;
+
+    const toggled = fullExpr.startsWith('-√') 
+      ? fullExpr.replace('-√', '√') 
+      : fullExpr.replace('√', '-√');
+
+    this.rawDisplay =
+      this.rawDisplay.slice(0, matchIndex) +
+      toggled +
+      this.rawDisplay.slice(matchIndex + fullExpr.length);
+
+    return;
   }
+
+  // 数値の符号反転
+  const match = this.rawDisplay.match(/(-?\(?-?\d*\.?\d+\)?%?)(?!.*\d)/);
+  if (!match) return;
+
+  const number = match[1];
+  const index = this.rawDisplay.lastIndexOf(number);
+  let transformed;
+
+  if (number.startsWith('(-') && number.endsWith(')')) {
+    transformed = number.slice(2, -1);  // (-8) → 8
+  } else if (number.startsWith('-')) {
+    transformed = `(${number})`;       // -8 → (-8)
+  } else {
+    transformed = `(-${number})`;      // 8 → (-8)
+  }
+
+  this.rawDisplay =
+    this.rawDisplay.slice(0, index) +
+    transformed +
+    this.rawDisplay.slice(index + number.length);
+    
+}
+
+inputPlusMinus() {
+  this.invertSign();
+  this.updateFormattedDisplays();
+}
 
   inputPercent() {
     if (this.rawDisplay.endsWith('%')) return;
@@ -563,4 +573,5 @@ inputSquareRoot() {
     return num.toFixed(8).replace(/\.?0+$/, '');
   }
 }
+
 
