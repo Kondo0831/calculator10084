@@ -14,7 +14,7 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('expressionText') expressionTextRef!: ElementRef
   @ViewChild('someElement') someElementRef!: ElementRef;
 
-  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 19) {
+  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 16) {
     const parent = element.parentElement;
     if (!parent) return;
   
@@ -308,37 +308,39 @@ inputSquareRoot() {
   appendValue(value: string) {
     const operators = ['+', '-', '*', '/'];
 
-    // 直前が ) なら数字は追加できない
+    this.isAutoResizeEnabled = true; // 入力開始時にフォント調整を再有効化
     if (/[0-9.]/.test(value) && this.rawDisplay.endsWith(')')) return;
-  
-    // %の後に数字は追加できない
     if (/[0-9]/.test(value) && this.rawDisplay.endsWith('%')) return;
   
-    // 計算直後なら新しく入力し直す
     if (this.justCalculated && /[0-9.]/.test(value)) {
       this.rawDisplay = '';
       this.display = '';
       this.justCalculated = false;
     }
   
-    // 最初のゼロの除去
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
       this.rawDisplay = '';
     }
   
-    // 小数点の制限（1つだけ）
+    // 小数点は1個まで
     if (value === '.' && /\.\d*$/.test(this.rawDisplay)) return;
   
-    // 小数桁と整数桁の制限（必要に応じて調整）
+    // 🔽🔽🔽 ここから桁数制限を適用 🔽🔽🔽
     const match = this.rawDisplay.match(/(?:^|[+\-*/])(-?\d*\.?\d*)$/);
     const currentBlock = match ? match[1] : '';
     const [intPart = '', decimalPart = ''] = currentBlock.split('.');
-    if (/[0-9]/.test(value)) {
-      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
-      if (cleanInt.length + decimalPart.length >= 18) return;
-    }
+    const isDecimal = currentBlock.includes('.');
+    const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
+    const totalDigits = cleanInt.length + decimalPart.length;
   
-    // 演算子の連続防止（例：++, --, etc. は最後の演算子を置き換え）
+    if (/[0-9]/.test(value)) {
+      if (!isDecimal && cleanInt.length >= 10) return;         // 整数部10桁まで
+      if (isDecimal && decimalPart.length >= 8) return;        // 小数部8桁まで
+      if (totalDigits >= 18) return;                           // 合計で18桁まで
+    }
+    // 🔼🔼🔼 ここまで桁制限 🔼🔼🔼
+  
+    // 演算子の連続を防ぐ
     if (operators.includes(value)) {
       const lastChar = this.rawDisplay.slice(-1);
       if (operators.includes(lastChar)) {
@@ -347,7 +349,6 @@ inputSquareRoot() {
       }
     }
   
-    // 入力追加
     this.rawDisplay += value;
     this.isClear = false;
   
@@ -364,15 +365,33 @@ inputSquareRoot() {
   // ==========================
   // 表示更新・整形
   // ==========================
+
+  isAutoResizeEnabled = true;  // ← クラスに追加
   updateFormattedDisplays() {
+    if (this.resultTextRef) {
+      const resultEl = this.resultTextRef.nativeElement;
+      
+      if (this.isAutoResizeEnabled) {
+        this.autoResizeFont(resultEl);
+      } else {
+        resultEl.style.fontSize = ''; // まず空にしてリセット
+        void resultEl.offsetWidth;    // ← reflow させてから再設定
+        resultEl.style.fontSize = '36px'; // 固定サイズ
+      }
+    }
     this.display = this.formatDisplay(this.rawDisplay);
   this.formula = this.buildFormulaDisplay(this.rawDisplay); // ← expression 表示用
   this.showFormula = true;
 
   setTimeout(() => {
     if (this.resultTextRef) {
-      this.autoResizeFont(this.resultTextRef.nativeElement);
+      if (this.isAutoResizeEnabled) {
+        this.autoResizeFont(this.resultTextRef.nativeElement);
+      } else {
+        this.resultTextRef.nativeElement.style.fontSize = '36px'; // ← 固定サイズに戻す
+      }
     }
+
     if (this.expressionTextRef) {
       this.autoResizeFont(this.expressionTextRef.nativeElement, 20, 10);
     }
@@ -405,7 +424,7 @@ inputSquareRoot() {
   // 計算処理
   // ==========================
   calculateResult() {
-   
+    this.isAutoResizeEnabled = false; // 結果表示は固定サイズ
     try {
       this.justCalculated = true;
       const lastChar = this.rawDisplay.slice(-1);
@@ -427,6 +446,8 @@ inputSquareRoot() {
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
         this.showFormula = true;
+  
+        this.updateFormattedDisplays(); // ✅ 必ず呼ぶ！
         return;
       }
   
@@ -439,17 +460,15 @@ inputSquareRoot() {
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
         this.rawDisplay = result;
         this.showFormula = true;
+  
+        this.updateFormattedDisplays(); // ✅ 忘れずに！
         return;
       }
   
       let expression = this.rawDisplay;
-  
-      // √ の処理：√x を Math.sqrt(x) に変換
       expression = expression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
         return `Math.sqrt(${num})`;
       });
-  
-      // パーセントを除算に変換（例: 50% → (50/100)）
       expression = expression.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
   
       const result = this.evaluateExpression(expression);
@@ -459,11 +478,14 @@ inputSquareRoot() {
       this.formula = this.formatDisplay(this.rawDisplay) + ' =';
       this.rawDisplay = result;
       this.showFormula = true;
+  
+      this.updateFormattedDisplays(); // ✅ 最後にもちゃんと！
     } catch (e) {
       this.display = 'Error';
       this.rawDisplay = '0';
       this.formula = '';
       this.showFormula = false;
+      this.updateFormattedDisplays();
     }
   }
   
@@ -500,22 +522,26 @@ invertSign() {
       this.rawDisplay.slice(0, matchIndex) +
       toggled +
       this.rawDisplay.slice(matchIndex + fullExpr.length);
-
     return;
   }
 
-  // 数値の符号反転
-  const match = this.rawDisplay.match(/(-?\(?-?\d*\.?\d+\)?%?)(?!.*\d)/);
+  // 最後の数値または括弧付き数値を抽出
+  const match = Array.from(this.rawDisplay.matchAll(/(\(?-?\d*\.?\d+\)?)(?!.*\d)/g)).pop();
   if (!match) return;
 
   const number = match[1];
-  const index = this.rawDisplay.lastIndexOf(number);
+  if (number === '0') return;
+
+  const index = match.index!;
   let transformed;
 
+  // トグル：括弧付き→外す、マイナス→括弧付け、普通→マイナス付け
   if (number.startsWith('(-') && number.endsWith(')')) {
     transformed = number.slice(2, -1);  // (-8) → 8
   } else if (number.startsWith('-')) {
     transformed = `(${number})`;       // -8 → (-8)
+  } else if (number.startsWith('(') && number.endsWith(')')) {
+    transformed = number.slice(1, -1); // (8) → 8
   } else {
     transformed = `(-${number})`;      // 8 → (-8)
   }
@@ -524,13 +550,23 @@ invertSign() {
     this.rawDisplay.slice(0, index) +
     transformed +
     this.rawDisplay.slice(index + number.length);
-    
 }
 
 inputPlusMinus() {
-  this.invertSign();
-  this.updateFormattedDisplays();
+  const lastChar = this.rawDisplay.charAt(this.rawDisplay.length - 1);
+
+  // 数字や√の後にのみ反応
+  if (/\d/.test(lastChar) || lastChar === '√') {
+    this.invertSign();  // 符号反転を行う
+  }
+
+  // 特定の状態の場合（±を押した後など）再度反応しないようにする
+  const lastTwoChars = this.rawDisplay.slice(this.rawDisplay.length - 2);
+  if (lastTwoChars === "±") return;
+
+  this.updateFormattedDisplays();  // 表示更新
 }
+
 
   inputPercent() {
     if (this.rawDisplay.endsWith('%')) return;
