@@ -30,7 +30,7 @@
   color: #888;
   text-align: right;
   padding: 5px 10px;
-  margin-bottom: 25px;
+  margin-bottom: 30px;
   overflow: hidden;
   direction: rtl;
   unicode-bidi: plaintext;
@@ -57,8 +57,7 @@
 .buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  /* 1段目だけ高さを抑えて、それ以降を通常サイズ */
-  grid-template-rows: 30px repeat(6, 60px); 
+  grid-template-rows: repeat(6, 65px); 
   gap: 8px;
   padding-bottom: 5px;
   height: 100%; /* 明示的に高さを指定 */
@@ -111,25 +110,17 @@ button.pressed {
 /* 横に2マス分（0ボタン） */
 button.double-width {
   grid-column: span 2;
-  height: 60px; /* 高さを固定 */
+ 
 }
 
 /* 縦に2マス分（=ボタン） */
 button.double-height {
   grid-row: span 2;
-  height:128px;
+  
 }
-
-.buttons button.plus {
-  font-size: 18px;
-  background-color: #e1dede;
-  color: #444;
-  align-self: end; /* 下に寄せる */
-  padding: 5px 6px;
 
 button[data-key="⌫"] {
-  transform: scale(0.8); /* ボタンを縮小 */
   padding: 6px 8px; /* 内側の余白も少し調整 */
   }
-}
+
 
