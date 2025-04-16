@@ -215,7 +215,7 @@ export class AppComponent implements AfterViewInit {
       // ＝の後でCEが押された場合、完全にリセットする
       this.clearDisplay();  // Cボタンの動作に合わせる
     } else {
-    const match = this.rawDisplay.match(/(.*?)([\d.]+%?)$/);
+      const match = this.rawDisplay.match(/(.*?)([-\d.√]+%?)$/);
   
     if (match) {
       const [, before, last] = match;
@@ -316,12 +316,9 @@ inputSquareRoot() {
     //数字や小数点が入力されていて、かつ括弧が閉じられている場合は処理中断
     if (/[0-9.]/.test(value) && this.rawDisplay.endsWith(')')) return;
     //数字が入力されていて、かつパーセントが入力されている場合は処理中断
-    if (/[0-9]/.test(value) && this.rawDisplay.endsWith('%')){      //←😊解決　
+    if (/[0-9]/.test(value) && this.rawDisplay.endsWith('%'))return;   //←😊解決　
      // パーセントの後に数字が続く場合は演算を実行する
-     this.rawDisplay += value;
-     this.updateFormattedDisplays();  // 演算を実行
-     return;
-   }
+
   // ✅ justCalculated の処理はここでまとめて行う
 　　if (this.justCalculated) {
   　　　this.justCalculated = false;
@@ -344,6 +341,8 @@ inputSquareRoot() {
 
     }
 
+    
+
 
 
   // ✅ justCalculated の直後に演算子が来たら → 計算結果を使って続ける（ここを追加）
@@ -354,6 +353,10 @@ inputSquareRoot() {
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
       this.rawDisplay = '';
     }
+    // 🔒 %のあとに数字, .（小数点）, √ は続けて入力できないようにする
+if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
+  return; // 無効な入力なので無視
+}
   
     // 小数点は1個まで
     if (value === '.' && /\.\d*$/.test(this.rawDisplay)) return;
@@ -379,20 +382,23 @@ const isAfterOperator = ['+', '−', '*', '/'].includes(this.rawDisplay.slice(-2
     
   // 🔸演算子の直後でも、10桁制限を厳密に守る
   if (isAfterOperator && cleanInt.length >= 10) return;
-
-
 }
+
+
 
     // 🔼🔼🔼 ここまで桁制限 🔼🔼🔼
    //🔥％は数字のあとだけ//
    if (value === '%') {
     const lastChar = this.rawDisplay.slice(-1);
   
-    // % は直前が数字または ) のときのみ有効
-    if (!/[0-9)]/.test(lastChar)) {
-      return;
-    }
+   
+    // 直前が % で、value が数値や . や √ の場合は無視
+if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
+  return; // 入力無視
+}
   }
+  
+
   
     // 💛演算子の連続を防ぐ💛
     if (operators.includes(value)) {
@@ -420,6 +426,8 @@ const isAfterOperator = ['+', '−', '*', '/'].includes(this.rawDisplay.slice(-2
       this.rawDisplay += value;
       return this.updateFormattedDisplays();
     }
+
+    
   
     // 通常の値の追加
     this.rawDisplay += value;
@@ -567,6 +575,8 @@ setTimeout(() => {
         return;
       }
 
+ 
+
       if (this.isAutoResizeEnabled) {
         this.autoResizeFont(document.getElementById('your-element-id')!); // 自動調整が有効な場合だけ
       }
@@ -598,8 +608,7 @@ setTimeout(() => {
   
       const result = this.evaluateExpression(expression);
       const formatted = this.formatNumber(result);
-
-   
+      
   
       this.display = formatted;
       this.formula = this.formatDisplay(this.rawDisplay) + ' =';
@@ -609,6 +618,14 @@ setTimeout(() => {
       if (this.isAutoResizeEnabled) {
         this.autoResizeFont(document.getElementById('your-element-id')!); // 自動調整が有効な場合だけ
       }
+      const intPart = this.roundTo8Decimals(result).split('.')[0].replace('-', '');
+if (intPart.length > 10) {
+  this.display = 'エラー: 11桁以上の計算結果';
+  this.rawDisplay = '';
+  this.formula = '';
+  this.showFormula = true;
+  return;
+}
   
     } catch (e) {
       this.display = 'Error';
@@ -640,10 +657,6 @@ setTimeout(() => {
 
     const [intPart, decPart = ''] = rawResult.toString().split('.');
 
-    // 🔥 整数部が11桁を超えていたら Error を返す
-    if (intPart.replace('-', '').length > 10) {
-      return 'Error'; // ←桁数超え
-    }
 
     return rawResult.toString();
   } catch (e) {
@@ -712,6 +725,11 @@ setTimeout(() => {
       //数字が入力されている場合はパーセントをつける  
       const match = this.rawDisplay.match(/−?\d+(\.\d+)?(?!.*\d)/);
       if (!match) return;
+// 🔒 √のあとに % を付けるのを防ぐ（例: √9%）
+if (/√[^+\-*/()]*$/.test(this.rawDisplay)) {
+  return;
+}
+
       //数字を取得
       const lastNumber = match[0];
       //数字の位置を取得
