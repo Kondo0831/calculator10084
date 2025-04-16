@@ -518,16 +518,10 @@ setTimeout(() => {
   
 
   formatNumber(value: string): string {
-    //小数点以下8桁まで整形
-    const [intPart, decimal] = value.split('.');
-    //整数を整形（3桁ごとにカンマを入れる）
+    const rounded = this.roundTo8Decimals(value); // ← ここで丸め
+    const [intPart, decimal] = rounded.split('.');
     const formatted = new Intl.NumberFormat('en-US').format(Number(intPart));
-    //少数がある場合は少数を整形
-    if (decimal) {
-      const trimmed = decimal.slice(0, 8).replace(/0+$/, '');
-      return trimmed ? `${formatted}.${trimmed}` : formatted;
-    }
-    return formatted;
+    return decimal ? `${formatted}.${decimal}` : formatted;
   }
 
   // ==========================
@@ -538,7 +532,7 @@ setTimeout(() => {
     
     this.isAutoResizeEnabled = false;
 
-    if (this.hasCalculated) return;
+   
   
     try {
       this.justCalculated = true;
@@ -568,7 +562,7 @@ setTimeout(() => {
   
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
-        this.rawDisplay = result;
+        this.rawDisplay =  this.roundTo8Decimals(result);
         this.showFormula = true;
         return;
       }
@@ -585,7 +579,7 @@ setTimeout(() => {
   
         this.display = formatted;
         this.formula = this.formatDisplay(repeatedExpr) + ' =';
-        this.rawDisplay = result;
+        this.rawDisplay = this.roundTo8Decimals(result);
         this.showFormula = true;
         return;
       }
@@ -604,10 +598,12 @@ setTimeout(() => {
   
       const result = this.evaluateExpression(expression);
       const formatted = this.formatNumber(result);
+
+   
   
       this.display = formatted;
       this.formula = this.formatDisplay(this.rawDisplay) + ' =';
-      this.rawDisplay = result;
+      this.rawDisplay = this.roundTo8Decimals(result);
       this.showFormula = true;
 
       if (this.isAutoResizeEnabled) {
@@ -730,15 +726,20 @@ setTimeout(() => {
       
     }
     replacePercent(expression: string): string {
-    // 剰余演算を適切に扱う（%を剰余演算子に変換）
-  return expression.replace(/(-?\d+(\.\d+)?)%(-?\d+(\.\d+)?)/g, (match, p1, _, p3) => {
-    return `(${p1} % ${p3})`;  // 剰余演算子に変換
-  }).replace(/(\d+(\.\d+)?)%/g, (match, p1) => {
-    // パーセント演算の場合（例: 10% → 0.1）として処理
+   // パーセントがついた数値同士を取り扱えるように変換
+   expression = expression.replace(/(−?\d+(\.\d+)?)%/g, (match, p1) => {
+    // パーセント演算を割り算に変換（例えば、10% → 0.1）
     return `(${p1} / 100)`;
   });
+
+  // `−`（マイナス）の直後に `%` が続く場合の処理も調整
+  expression = expression.replace(/(\d+(\.\d+)?)%(\d+(\.\d+)?)/g, (match, p1, _, p3) => {
+    // パーセント同士の演算に変換
+    return `(${p1} / 100) - (${p3} / 100)`; // 9%-6% を (9/100) - (6/100) に変換
+  });
+
+  return expression;
 }
-   
      
 
 
@@ -763,7 +764,7 @@ setTimeout(() => {
      // 
      // return result.toFixed(8).replace(/\.?0+$/, '');
     //}
-
+  
     roundTo8Decimals(value: string): string {
       const num = Number(value);
       if (isNaN(num)) throw new Error('Invalid number');
