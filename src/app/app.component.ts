@@ -18,7 +18,7 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('someElement') someElementRef!: ElementRef;
 
   //element:フォントを調整したい　最大、最小
-  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 16) {
+  autoResizeFont(element: HTMLElement, maxFontSize =30, minFontSize = 16) {
    // `isAutoResizeEnabled` が false の場合、処理を中止
    if (!this.isAutoResizeEnabled) return;
     //要素の親を取得
@@ -37,9 +37,7 @@ export class AppComponent implements AfterViewInit {
   }
 　　　
  
-  removeFocus() {
-    this.someElementRef.nativeElement.blur();
-  }
+ 
 
   // ==========================
   // 状態管理
@@ -57,7 +55,7 @@ export class AppComponent implements AfterViewInit {
   hasCalculated = false;
   isNumberEntered = false;
   isAutoResizeEnabled = true;  // ← クラスに追加
-  
+  isError: boolean = false;
 
   //raw 加工前の式。戻り値は成形された式　string
   buildFormulaDisplay(raw: string): string {
@@ -72,11 +70,11 @@ export class AppComponent implements AfterViewInit {
   // 初期フォーカス制御
   // ==========================
   //これがあるとキーボード入力が使えるようになる
+  
   ngAfterViewInit() {
-    const el = document.querySelector('.calculator') as HTMLElement;
-    el?.focus();
+    // 最初に画面ができたとき、フォーカスを強制的にどこかに当てる
+    document.body.focus(); // または this.renderer.selectRootElement('#main').focus();
   }
-
   focusBack(event: Event) {
     (event.currentTarget as HTMLElement).focus();
   }
@@ -211,6 +209,11 @@ export class AppComponent implements AfterViewInit {
   }
 
   clearEntry() {
+    if (this.display === '無効な計算です' || this.display.startsWith('エラー')) {
+      // エラー状態なら全部クリア
+      this.clearDisplay();
+      return;
+    }
     if (this.justCalculated) {
       // ＝の後でCEが押された場合、完全にリセットする
       this.clearDisplay();  // Cボタンの動作に合わせる
@@ -233,84 +236,22 @@ export class AppComponent implements AfterViewInit {
 }
 // √ 計算処理
 // ==========================
-inputSquareRoot() {
-  if (this.rawDisplay === '0' || this.rawDisplay === '') return;
 
-  const match = this.rawDisplay.match(/(√-?\d+(\.\d+)?%?|√\.\d+|-?\d+(\.\d+)?%?|\.\d+)$/);
-  if (!match) return;
 
-  const matchedText = match[0];
-  const idx = this.rawDisplay.lastIndexOf(matchedText);
 
-  // すでに√がついている場合、外して計算する
-  if (matchedText.startsWith('√')) {
-    const withoutSqrt = matchedText.replace(/^√/, '');
-    let parsed = parseFloat(withoutSqrt);
-    if (withoutSqrt.endsWith('%')) {
-      parsed = parseFloat(withoutSqrt) / 100;
-    }
-
-    const result = Math.sqrt(parsed);
-
-    // √の中がマイナスだった場合エラー
-    if (isNaN(result)) {
-      this.display = '無効な計算です';
-      this.rawDisplay = '0';
-      this.formula = '';
-      this.showFormula = false;
-      return;
-    }
-
-    this.rawDisplay = this.rawDisplay.slice(0, idx) + withoutSqrt;
-    this.display = this.roundTo8Decimals(result.toString());
-    this.formula = this.rawDisplay + ' =';
-    this.showFormula = true;
-    this.updateFormattedDisplays();
-    return;
-  }
-
-  // 新たに√をつける
-  let parsed = parseFloat(matchedText);
-  if (matchedText.endsWith('%')) {
-    parsed = parsed / 100;
-  }
-
-  // 数字の前にマイナスがある場合はOK
-  if (this.rawDisplay.includes('-') && !this.rawDisplay.startsWith('-√')) {
-    // -98のようなケース、√をつけてもOK
-    if (this.rawDisplay.includes('-') && matchedText.startsWith('-')) {
-      this.rawDisplay = this.rawDisplay.slice(0, idx) + `√${matchedText}`;
-      const sqrtResult = Math.sqrt(parsed);
-      this.display = this.roundTo8Decimals(sqrtResult.toString());
-      this.formula = this.rawDisplay + ' =';
-      this.showFormula = true;
-      this.updateFormattedDisplays();
-      return;
-    }
-  }
-
-  // √の中がマイナスだったら即エラー
-  if (parsed < 0) {
-    this.display = 'Error';
-    this.rawDisplay = '0';
-    this.formula = '';
-    this.showFormula = false;
-    return;
-  }
-
-  // 普通の計算処理
-  this.rawDisplay = this.rawDisplay.slice(0, idx) + `√${matchedText}`;
-  const sqrtResult = Math.sqrt(parsed);
-  this.display = this.roundTo8Decimals(sqrtResult.toString());
-  this.formula = this.rawDisplay + ' =';
-  this.showFormula = true;
-  this.updateFormattedDisplays();
-}
   appendValue(value: string) {
+      // エラー表示中に何か数字などが押されたらリセット
+  if (this.isError) {
+    if (!/^\d$/.test(value) && value !== '.') return; // 数字と小数点以外なら無視
+    this.clearDisplay(); // 全リセット（CEでもOKなら clearEntry()）
+
+    this.isError = false;
+  }
+
 
     const operators = ['+', '−', '*', '/'];
   
-
+  
    //フォントサイズを調整する
     this.isAutoResizeEnabled = true; // 入力開始時にフォント調整を再有効化
     //数字や小数点が入力されていて、かつ括弧が閉じられている場合は処理中断
@@ -329,6 +270,7 @@ inputSquareRoot() {
         this.rawDisplay = '0.';  // ✅ 小数点始まりを 0. に
         this.display = '0.';
         this.justCalculated = false;
+        this.formula = '';
         this.updateFormattedDisplays(); // 表示更新も忘れずに
         return;
       }
@@ -337,6 +279,8 @@ inputSquareRoot() {
         this.rawDisplay = '';
         this.display = '';
         this.justCalculated = false;
+        this.formula = '';
+
       }
 
     }
@@ -346,9 +290,9 @@ inputSquareRoot() {
 
 
   // ✅ justCalculated の直後に演算子が来たら → 計算結果を使って続ける（ここを追加）
-    if (this.justCalculated && operators.includes(value)) {
-        this.justCalculated = false; // 続けて入力するためフラグオフ
-    }
+  if (this.justCalculated && operators.includes(value)) {
+    this.justCalculated = false; 
+  }// 
     //0が入力されていて、かつ小数点でない場合は空にする
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
       this.rawDisplay = '';
@@ -435,28 +379,42 @@ if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
     this.updateFormattedDisplays();
   }
 
+  normalizeTrailingDots(expr: string): string {
+    // 数字の末尾が `.` で終わっていたら `.0` を補う（例：9. → 9.0）
+    return expr.replace(/(\d+)\.(?!\d)/g, '$1.0');
+  }
+
   backspace() {
-    // パターン: 演算子（+, -, *, /）のあとに「マイナス付き数」が来てるとき（例: 98--76）
-    const match = this.rawDisplay.match(/(.+[\+\−\*\/])(-\d+(\.\d+)?)$/);
+    // 計算直後ならすべてクリア（数値入力と同じ動きに合わせる）
+    if (this.justCalculated) {
+      this.rawDisplay = '0';
+      this.display = '0';
+      this.formula = '';
+      this.showFormula = false;
+      this.justCalculated = false;
+      this.updateFormattedDisplays();
+      return;
+    }
   
-    if (match) {
-      // 「-数値」ごと削除（--76 の部分）
-      this.rawDisplay = match[1]; // 98- だけ残す
+    // 特殊ケース: 演算子のあとに -1桁の数字（例: 89--9）
+    const signAndDigitMatch = this.rawDisplay.match(/(.+[\+\−\*\/])(√?-?\d)$/);
+    if (signAndDigitMatch) {
+      this.rawDisplay = signAndDigitMatch[1]; // 最後の「-数字」をまとめて消す
     } else {
       // 通常の1文字削除
       this.rawDisplay = this.rawDisplay.slice(0, -1);
     }
   
-    // 空や不完全な状態になったら初期化
+    // 空や不完全な状態の補正
     if (!this.rawDisplay || this.rawDisplay === '-' || this.rawDisplay === '√-' || this.rawDisplay === '√') {
       this.rawDisplay = '0';
     }
   
+    // 表示更新
+    this.display = this.formatDisplay(this.rawDisplay);
+    this.formula = ''; // 式はクリア
     this.updateFormattedDisplays();
-    this.formula = ''; // 式表示は消す
   }
-
-
 
   // ==========================
   // 表示更新・整形
@@ -466,25 +424,31 @@ if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
 
 　//rawdisplay（入力内容）をもとに、画面の表示を更新し、フォントサイズも変更
   updateFormattedDisplays() {
-    //結果表示のフォントサイズを調整
-    if (this.resultTextRef) {
-      const resultEl = this.resultTextRef.nativeElement;
-    //文字数に応じて自動でフォントサイズを調整
-      if (this.isAutoResizeEnabled) {
-        this.autoResizeFont(resultEl);
-      } else {
-        resultEl.style.fontSize = ''; // まず空にしてリセット
-        void resultEl.offsetWidth;    // ← reflow させてから再設定
-        resultEl.style.fontSize = '32px'; // 固定サイズ
-      }
+  // 結果表示のフォントサイズを調整
+  if (this.resultTextRef) {
+    const resultEl = this.resultTextRef.nativeElement;
+    if (this.isAutoResizeEnabled) {
+      this.autoResizeFont(resultEl);
+    } else {
+      resultEl.style.fontSize = '';
+      void resultEl.offsetWidth;
+      resultEl.style.fontSize = '32px';
     }
-    //表示内容を更新
-   this.display = this.formatDisplay(this.rawDisplay);
-   //expression表示のフォントサイズを調整
-  this.formula = '';
-  //数式を表示するフラグ
-  this.showFormula = true;
+  }
 
+  // エラー状態の場合は display を更新しない
+  if (this.display !== '無効な計算です') {
+    this.display = this.formatDisplay(this.rawDisplay);
+  }
+
+  // 式の表示に関しては、エラー時にも残したいかどうかで分岐
+  if (this.display !== '無効な計算です') {
+    this.showFormula = true;
+  }
+
+  // this.formula をここで '' にするのは避けた方がいいかも
+  // ※ catch の中で消すなら OK、ここでは常にクリアしない
+  
   //一応？
 setTimeout(() => {
  if (this.resultTextRef) {
@@ -526,39 +490,102 @@ setTimeout(() => {
   
 
   formatNumber(value: string): string {
-    const rounded = this.roundTo8Decimals(value); // ← ここで丸め
-    const [intPart, decimal] = rounded.split('.');
-    const formatted = new Intl.NumberFormat('en-US').format(Number(intPart));
-    return decimal ? `${formatted}.${decimal}` : formatted;
+    const num = Number(value);
+
+  // 極小の非ゼロ値を表示する特別処理
+  if (num !== 0 && Math.abs(num) < 1e-8) {
+    return num < 0 ? '-0...' : '0...';
   }
 
-  // ==========================
-  // 計算処理
-  // ==========================
-  //計算結果を表示する
-  calculateResult() {
-    
-    this.isAutoResizeEnabled = false;
+  const [intPart, decimal] = value.split('.');
+  const formattedInt = new Intl.NumberFormat('en-US').format(Number(intPart));
 
+  if (!decimal) return formattedInt;
+
+  // 小数が9桁以上 → 8桁＋「...」
+  if (decimal.length > 8) {
+    return `${formattedInt}.${decimal.slice(0, 8)}...`;
+  }
+
+  return `${formattedInt}.${decimal}`;
+}
+  
+  
+
+  inputSquareRoot() {
+    if (this.rawDisplay === '0' || this.rawDisplay === '') return;
+  
+    const match = this.rawDisplay.match(/(√-?\d+(\.\d+)?%?|√\.\d+|-?\d+(\.\d+)?%?|\.\d+)$/);
+    if (!match) return;
+  
+    const matchedText = match[0];
+    const idx = this.rawDisplay.lastIndexOf(matchedText);
+
+  // 最後に「%」がついている場合、√をつけない
+  if (this.rawDisplay.endsWith('%')) {
+ 
+    return;
+  }
+
+  
+    // √をつける or 外す処理
+    let innerText = matchedText.replace(/^√/, '');
+    let evaluatedInner = this.replacePercent(innerText);
+    let parsed = parseFloat(this.evaluateExpression(evaluatedInner));
+  
+    // √の中がマイナスだった場合エラー（どちらのケースでも共通）
+    if (parsed < 0) {
+      this.display = '無効な計算です';
+      this.isError = true;
+      this.rawDisplay = this.rawDisplay.slice(0, idx) + matchedText;
+      this.formula = this.rawDisplay.slice(0, idx) + `√${matchedText}`;
+      return;
+    }
+  
+    const result = Math.sqrt(parsed);
    
   
+    // すでに√がある → 外す
+    if (matchedText.startsWith('√')) {
+      this.rawDisplay = this.rawDisplay.slice(0, idx) + innerText;
+      this.display = result.toString();  // ← そのまま代入
+      this.formula = '';
+      this.showFormula = true;
+      this.updateFormattedDisplays();
+      return;
+    }
+  
+    // √がついてなかった → つけて計算
+    this.rawDisplay = this.rawDisplay.slice(0, idx) + `√${matchedText}`;
+    this.display = result.toString();  // ← そのまま代入
+    this.formula = '';
+    this.showFormula = true;
+    this.updateFormattedDisplays();
+  }
+ 
+  calculateResult() {
+    if (
+      (this.justCalculated && !this.lastOperator) ||
+      this.display.includes('エラー') ||
+      this.display === '無効な計算です'
+    ) {
+      return;
+    }
+  
+    this.justCalculated = true;
+  
+    const prevExpression = this.formatDisplay(this.normalizeTrailingDots(this.rawDisplay)) + ' =';
+  
     try {
-      this.justCalculated = true;
-  
-      // 演算子文字を正規化（この段階で−を-に変換しておく）
       this.rawDisplay = this.rawDisplay.replace(/−/g, '-');
-  
       const lastChar = this.rawDisplay.slice(-1);
-      const operators = ['+', '-', '*', '/']; // ← 全部半角に統一
-  
+      const operators = ['+', '-', '*', '/'];
       let expression = this.rawDisplay;
-
-     
   
-      // 演算子が最後にある場合の繰り返し計算処理
+      // 🔁 演算子が最後にあるときの繰り返し計算
       if (operators.includes(lastChar)) {
         const beforeOp = this.rawDisplay.slice(0, -1);
-        const lastNumMatch = beforeOp.match(/(√?-?\d+(\.\d+)?)(?!.*\d)/); // ← - に変更
+        const lastNumMatch = beforeOp.match(/(√?-?\d+(?:\.\d+)?%?)(?!.*\d)/);
         const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
   
         this.lastOperator = lastChar;
@@ -568,37 +595,47 @@ setTimeout(() => {
         const result = this.evaluateExpression(this.replacePercent(repeatedExpr));
         const formatted = this.formatNumber(result);
   
+        const intPart = String(result).split('.')[0].replace('-', '');
+        if (intPart.length > 10) {
+          this.display = 'エラー: 11桁以上の計算結果';
+          this.formula = prevExpression;
+          this.rawDisplay = '';
+          this.showFormula = true;
+          this.isError = true;
+          return;
+        }
+  
         this.display = formatted;
-        this.formula = this.formatDisplay(repeatedExpr) + ' =';
-        this.rawDisplay =  this.roundTo8Decimals(result);
+        this.formula = this.formatDisplay(this.normalizeTrailingDots(repeatedExpr)) + ' =';
+        this.rawDisplay = String(result);
         this.showFormula = true;
         return;
       }
-
- 
-
-      if (this.isAutoResizeEnabled) {
-        this.autoResizeFont(document.getElementById('your-element-id')!); // 自動調整が有効な場合だけ
-      }
   
-      // 連続計算対応（＝連打）
+      // ＝連打の繰り返し計算
       if (this.justCalculated && this.lastOperator && this.lastOperand) {
         const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
         const result = this.evaluateExpression(this.replacePercent(repeatedExpr));
         const formatted = this.formatNumber(result);
   
+        const intPart = String(result).split('.')[0].replace('-', '');
+        if (intPart.length > 10) {
+          this.display = 'エラー: 11桁以上の計算結果';
+          this.isError = true;
+          this.rawDisplay = '';
+          this.formula = prevExpression;
+          this.showFormula = true;
+          return;
+        }
+  
         this.display = formatted;
-        this.formula = this.formatDisplay(repeatedExpr) + ' =';
-        this.rawDisplay = this.roundTo8Decimals(result);
+        this.formula = this.formatDisplay(this.normalizeTrailingDots(repeatedExpr)) + ' =';
+        this.rawDisplay = String(result);
         this.showFormula = true;
         return;
       }
-      if (this.isAutoResizeEnabled) {
-        this.autoResizeFont(document.getElementById('your-element-id')!); // 自動調整が有効な場合だけ
-      }
-
   
-      // パーセント変換
+      // パーセント処理
       expression = this.replacePercent(expression);
   
       // √の処理
@@ -608,33 +645,36 @@ setTimeout(() => {
   
       const result = this.evaluateExpression(expression);
       const formatted = this.formatNumber(result);
-      
+  
+      const intPart = String(result).split('.')[0].replace('-', '');
+      if (intPart.length > 10) {
+        this.display = 'エラー: 11桁以上の計算結果';
+        this.isError = true;
+        this.rawDisplay = '';
+        this.formula = prevExpression;
+        this.showFormula = true;
+        return;
+      }
   
       this.display = formatted;
-      this.formula = this.formatDisplay(this.rawDisplay) + ' =';
-      this.rawDisplay = this.roundTo8Decimals(result);
+      this.formula = this.formatDisplay(this.normalizeTrailingDots(this.rawDisplay)) + ' =';
+      this.rawDisplay = String(result);
       this.showFormula = true;
-
-      if (this.isAutoResizeEnabled) {
-        this.autoResizeFont(document.getElementById('your-element-id')!); // 自動調整が有効な場合だけ
-      }
-      const intPart = this.roundTo8Decimals(result).split('.')[0].replace('-', '');
-if (intPart.length > 10) {
-  this.display = 'エラー: 11桁以上の計算結果';
-  this.rawDisplay = '';
-  this.formula = '';
-  this.showFormula = true;
-  return;
-}
-  
     } catch (e) {
-      this.display = 'Error';
-      this.rawDisplay = '0';
-      this.formula = '';
+      this.display = '無効な計算です';
+      this.isError = true;
+      this.rawDisplay = '';
+      this.formula = prevExpression;
       this.showFormula = false;
       this.updateFormattedDisplays();
     }
-  } 
+  }
+
+  // ==========================
+  // 計算処理
+  // ==========================
+  //計算結果を表示する
+  
 
   evaluateExpression(expression: string): string {
     try {
@@ -782,10 +822,4 @@ if (/√[^+\-*/()]*$/.test(this.rawDisplay)) {
      // 
      // return result.toFixed(8).replace(/\.?0+$/, '');
     //}
-  
-    roundTo8Decimals(value: string): string {
-      const num = Number(value);
-      if (isNaN(num)) throw new Error('Invalid number');
-      return num.toFixed(8).replace(/\.?0+$/, '');
-    }
-  }
+}
