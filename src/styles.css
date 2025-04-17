@@ -1,6 +1,6 @@
 html, body {
   margin: 0;
-  padding: 50px 20px; /* 上下40px, 左右20pxの余白 */
+  padding: 70px 20px; /* 上下40px, 左右20pxの余白 */
   background: linear-gradient(to bottom, #f4f4f4, #e0e0e0);
   font-family: 'Segoe UI', sans-serif;
   display: flex;

@@ -1,5 +1,5 @@
 .calculator-wrapper {
-  transform: scale(0.82);             /* 縮小率：80% */
+  transform: scale(0.75);             /* 縮小率：80% */
   transform-origin: top left;        /* 左上基準で縮小 */
   width: fit-content;                /* 中身に合わせる */
   height: fit-content;
@@ -10,8 +10,8 @@
 .calculator {
   
   background: linear-gradient(to bottom, #f0f0f0, #dcdcdc); /* 明るいグレー系のグラデーション */
-  padding: 30px 20px 15px 20px; /* 上に30pxの余白を追加 */
-  width: 450px;
+  padding: 30px 20px 10px 20px; /* 上に30pxの余白を追加 */
+  width: 400px;
   max-width:90%;
   height: 590px;
   color: #222;
@@ -36,25 +36,28 @@
   unicode-bidi: plaintext;
   height: 24px;
   white-space: nowrap;
+  line-height: 36px;
 }
 
 .result {
   font-size: 36px;
   font-weight: 600;
   text-align: right;
-  padding: 5px 5px;
+  padding: 0;
   background-color: transparent;
   margin-bottom: 30px;
   white-space: nowrap;
-  direction: ltr;
   overflow: hidden;
   height: 48px;
+  direction: ltr;
   border-bottom: 1px solid #ccc;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
+  
   
 }
 
 .buttons {
+  
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(6, 65px); 

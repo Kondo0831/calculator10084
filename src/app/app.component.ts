@@ -17,24 +17,7 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('expressionText') expressionTextRef!: ElementRef
   @ViewChild('someElement') someElementRef!: ElementRef;
 
-  //element:フォントを調整したい　最大、最小
-  autoResizeFont(element: HTMLElement, maxFontSize =30, minFontSize = 16) {
-   // `isAutoResizeEnabled` が false の場合、処理を中止
-   if (!this.isAutoResizeEnabled) return;
-    //要素の親を取得
-    //親がない場合は処理中断
-    const parent = element.parentElement;
-    if (!parent) return;
-    
-   //最初に最大フォントサイズでスタート
-    let fontSize = maxFontSize;
-   //フォントサイズを設定
-    element.style.fontSize = fontSize + 'px'; 
-    while (element.scrollWidth > parent.clientWidth && fontSize > minFontSize) {
-      fontSize--;
-      element.style.fontSize = fontSize + 'px';
-    }
-  }
+
 　　　
  
  
@@ -56,6 +39,7 @@ export class AppComponent implements AfterViewInit {
   isNumberEntered = false;
   isAutoResizeEnabled = true;  // ← クラスに追加
   isError: boolean = false;
+  isResultDisplayed = false;
 
   //raw 加工前の式。戻り値は成形された式　string
   buildFormulaDisplay(raw: string): string {
@@ -182,9 +166,68 @@ export class AppComponent implements AfterViewInit {
     };
     // デフォルトは appendValue
     return actions[value] || (() => this.appendValue(value));
+  }  //element:フォントを調整したい　最大、最小
+  autoResizeFont(element: HTMLElement, maxFontSize = 36, minFontSize = 14) {
+    if (!this.isAutoResizeEnabled) return;
+  
+    const parent = element.parentElement;
+    if (!parent) return;
+  
+    const parentWidth = parent.clientWidth;
+  
+    // 一旦仮に最大サイズで測る
+    element.style.fontSize = `${maxFontSize}px`;
+  
+    // 本来の文字幅を計測（最大サイズで）
+    const actualWidth = element.scrollWidth;
+  
+    // 必要な縮小率を計算
+    const scale = parentWidth / actualWidth;
+  
+    // スケールに応じたフォントサイズ
+    let newFontSize = Math.floor(maxFontSize * scale);
+  
+    // 最小フォントサイズ以下にならないように調整
+    newFontSize = Math.max(minFontSize, Math.min(maxFontSize, newFontSize));
+  
+    element.style.fontSize = `${newFontSize}px`;
+  }
+  
+
+
+
+  backspace() {
+    // 計算直後ならすべてクリア（数値入力と同じ動きに合わせる）
+    if (this.justCalculated) {
+      this.rawDisplay = '0';
+      this.display = '0';
+      this.formula = '';
+      this.showFormula = false;
+      this.justCalculated = false;
+      this.updateFormattedDisplays();
+      return;
+    }
+  
+    // 特殊ケース: 演算子のあとに -1桁の数字（例: 89--9）
+    const signAndDigitMatch = this.rawDisplay.match(/(.+[\+\−\*\/])(√?-?\d)$/);
+    if (signAndDigitMatch) {
+      this.rawDisplay = signAndDigitMatch[1]; // 最後の「-数字」をまとめて消す
+    } else {
+      // 通常の1文字削除
+      this.rawDisplay = this.rawDisplay.slice(0, -1);
+    }
+  
+    // 空や不完全な状態の補正
+    if (!this.rawDisplay || this.rawDisplay === '-' || this.rawDisplay === '√-' || this.rawDisplay === '√') {
+      this.rawDisplay = '0';
+    }
+  
+    // 表示更新
+    this.display = this.formatDisplay(this.rawDisplay);
+    this.formula = ''; // 式はクリア
+    this.updateFormattedDisplays();
   }
 
- 
 
   clearDisplay() {
     // 全ての入力をクリア
@@ -201,12 +244,7 @@ export class AppComponent implements AfterViewInit {
 
   }
 
-  resetHistory() {
-    //最後の演算子をクリア
-    this.lastOperator = null;
-    //最後の数字をクリア
-    this.lastOperand = null;
-  }
+ 
 
   clearEntry() {
     if (this.display === '無効な計算です' || this.display.startsWith('エラー')) {
@@ -234,10 +272,14 @@ export class AppComponent implements AfterViewInit {
     this.updateFormattedDisplays();
   }
 }
-// √ 計算処理
-// ==========================
 
 
+  resetHistory() {
+  //最後の演算子をクリア
+  this.lastOperator = null;
+  //最後の数字をクリア
+  this.lastOperand = null;
+}
 
   appendValue(value: string) {
       // エラー表示中に何か数字などが押されたらリセット
@@ -346,6 +388,9 @@ if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
   
     // 💛演算子の連続を防ぐ💛
     if (operators.includes(value)) {
+
+
+      
       const lastChar = this.rawDisplay.slice(-1); // 最後の文字を取得
       const lastTwoChars = this.rawDisplay.slice(-2); // 最後から2番目と最後の文字を取得
     
@@ -380,47 +425,13 @@ if (this.rawDisplay.endsWith('%') && /^[0-9.√]$/.test(value)) {
   }
 
   normalizeTrailingDots(expr: string): string {
-    // 数字の末尾が `.` で終わっていたら `.0` を補う（例：9. → 9.0）
-    return expr.replace(/(\d+)\.(?!\d)/g, '$1.0');
-  }
+    return expr
+    // 末尾が `.` で終わる数字に `.0` を補う（例：9. → 9.0）
+    .replace(/(\d+)\.(?!\d)/g, '$1.0')
+    // `.` から始まる数字を `0.` に補正（例：+.5 → +0.5、*.3 → *0.3）
+    .replace(/(^|[+\-*/\(])\.([0-9])/g, '$10.$2');
+}
 
-  backspace() {
-    // 計算直後ならすべてクリア（数値入力と同じ動きに合わせる）
-    if (this.justCalculated) {
-      this.rawDisplay = '0';
-      this.display = '0';
-      this.formula = '';
-      this.showFormula = false;
-      this.justCalculated = false;
-      this.updateFormattedDisplays();
-      return;
-    }
-  
-    // 特殊ケース: 演算子のあとに -1桁の数字（例: 89--9）
-    const signAndDigitMatch = this.rawDisplay.match(/(.+[\+\−\*\/])(√?-?\d)$/);
-    if (signAndDigitMatch) {
-      this.rawDisplay = signAndDigitMatch[1]; // 最後の「-数字」をまとめて消す
-    } else {
-      // 通常の1文字削除
-      this.rawDisplay = this.rawDisplay.slice(0, -1);
-    }
-  
-    // 空や不完全な状態の補正
-    if (!this.rawDisplay || this.rawDisplay === '-' || this.rawDisplay === '√-' || this.rawDisplay === '√') {
-      this.rawDisplay = '0';
-    }
-  
-    // 表示更新
-    this.display = this.formatDisplay(this.rawDisplay);
-    this.formula = ''; // 式はクリア
-    this.updateFormattedDisplays();
-  }
-
-  // ==========================
-  // 表示更新・整形
-  // ==========================
-
-  
 
 　//rawdisplay（入力内容）をもとに、画面の表示を更新し、フォントサイズも変更
   updateFormattedDisplays() {
@@ -564,6 +575,7 @@ setTimeout(() => {
   }
  
   calculateResult() {
+    this.isResultDisplayed = true;
     if (
       (this.justCalculated && !this.lastOperator) ||
       this.display.includes('エラー') ||
@@ -642,6 +654,11 @@ setTimeout(() => {
       expression = expression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
         return `Math.sqrt(${num})`;
       });
+
+       // ゼロ除算チェック
+    if (expression.includes('/0')) {
+      throw new Error('無効な計算です');
+    }
   
       const result = this.evaluateExpression(expression);
       const formatted = this.formatNumber(result);
@@ -668,13 +685,14 @@ setTimeout(() => {
       this.showFormula = false;
       this.updateFormattedDisplays();
     }
+
+    setTimeout(() => {
+      if (!this.isError && this.resultTextRef) {
+        this.autoResizeFont(this.resultTextRef.nativeElement);
+      }
+    });
   }
 
-  // ==========================
-  // 計算処理
-  // ==========================
-  //計算結果を表示する
-  
 
   evaluateExpression(expression: string): string {
     try {
@@ -741,16 +759,10 @@ setTimeout(() => {
       if (secondLastChar === ' ') {
         this.rawDisplay = this.rawDisplay.slice(0, -1) + value;
         this.updateFormattedDisplays();
+       }
       }
     }
     
-
-
-
-
-
-
-  }
 
     inputPercent() {
       //パーセントが入力されている場合は処理中断
@@ -765,10 +777,10 @@ setTimeout(() => {
       //数字が入力されている場合はパーセントをつける  
       const match = this.rawDisplay.match(/−?\d+(\.\d+)?(?!.*\d)/);
       if (!match) return;
-// 🔒 √のあとに % を付けるのを防ぐ（例: √9%）
-if (/√[^+\-*/()]*$/.test(this.rawDisplay)) {
-  return;
-}
+
+      if (/√[^+\-*/()]*$/.test(this.rawDisplay)) {
+      return;
+      }
 
       //数字を取得
       const lastNumber = match[0];
@@ -782,44 +794,21 @@ if (/√[^+\-*/()]*$/.test(this.rawDisplay)) {
       this.updateFormattedDisplays();
 
       
+     }
+    
+     replacePercent(expression: string): string {
+     // パーセントがついた数値同士を取り扱えるように変換
+     expression = expression.replace(/(−?\d+(\.\d+)?)%/g, (match, p1) => {
+     // パーセント演算を割り算に変換（例えば、10% → 0.1）
+     return `(${p1} / 100)`;
+     });
+
+     // `−`（マイナス）の直後に `%` が続く場合の処理も調整
+     expression = expression.replace(/(\d+(\.\d+)?)%(\d+(\.\d+)?)/g, (match, p1, _, p3) => {
+     // パーセント同士の演算に変換
+     return `(${p1} / 100) - (${p3} / 100)`; // 9%-6% を (9/100) - (6/100) に変換
+     });
+
+     return expression;
+     }
     }
-    replacePercent(expression: string): string {
-   // パーセントがついた数値同士を取り扱えるように変換
-   expression = expression.replace(/(−?\d+(\.\d+)?)%/g, (match, p1) => {
-    // パーセント演算を割り算に変換（例えば、10% → 0.1）
-    return `(${p1} / 100)`;
-  });
-
-  // `−`（マイナス）の直後に `%` が続く場合の処理も調整
-  expression = expression.replace(/(\d+(\.\d+)?)%(\d+(\.\d+)?)/g, (match, p1, _, p3) => {
-    // パーセント同士の演算に変換
-    return `(${p1} / 100) - (${p3} / 100)`; // 9%-6% を (9/100) - (6/100) に変換
-  });
-
-  return expression;
-}
-     
-
-
-    // ==========================
-    // 補助関数
-    // ==========================
-    //applyOperation(a: string, op: string, b: string): string {
-      //数字を取得
-     // const numA = parseFloat(a);
-     //  const numB = parseFloat(b);
-      //let result: number;
-     //演算子によって計算を行う
-
-     // switch (op) {
-     //   case '+': result = numA + numB; break;
-     //   case '-': result = numA - numB; break;
-     //   case '*': result = numA * numB; break;
-     //   case '/': if (numB === 0) throw new Error('Divide by zero'); result = numA / numB; break;
-     //   default: throw new Error('Unknown operator');
-     // }
-
-     // 
-     // return result.toFixed(8).replace(/\.?0+$/, '');
-    //}
-}
