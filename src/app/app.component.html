@@ -1,3 +1,4 @@
+
 <body>
   <div class="calculator-wrapper">
       <!-- キーボード入力がで↓きるようになる -->
@@ -15,9 +16,9 @@
         <button class="special" (click)="appendValue('/'); focusBack($event)" data-key="/">÷</button>
 
         <!-- 2段目 -->
-        <button class="special" (click)="inputSquareRoot(); focusBack($event)" data-key="√">√</button>
-        <button class="special" (click)="inputPlusMinus(); focusBack($event)" data-key="F9">±</button>
-        <button class="special" (click)="onButtonClick('%'); focusBack($event)" data-key="%">%</button>
+        <button class="special" (click)="appendValue('√'); focusBack($event)" data-key="√">√</button>
+        <button class="special" (click)="appendValue('±'); focusBack($event)" data-key="F9">±</button>
+        <button class="special" (click)="appendValue('%'); focusBack($event)" data-key="%">%</button>
         <button class="special" (click)="appendValue('*'); focusBack($event)" data-key="*">×</button>
 
         <!-- 3段目 -->
