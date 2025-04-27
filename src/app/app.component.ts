@@ -188,112 +188,45 @@ export class AppComponent implements AfterViewInit {
 
 
   backspace() {
-    // 計算直後ならすべてクリア（数値入力と同じ動きに合わせる）
-    if (this.justCalculated) {
-      this.rawDisplay = '0';
+    // 計算直後やエラー時は全体クリア
+    if (this.justCalculated || this.isError) {
       this.display = '0';
+      this.rawDisplay = '0';
       this.formula = '';
       this.showFormula = false;
       this.justCalculated = false;
+      this.isError = false;
       this.updateFormattedDisplays();
       return;
     }
-
-    // ★ % を含む数値（計算後）もまとめて CE 処理
+    // %または√の直後はCEと同じ動作
     if (this.isFromPercent) {
-      const match = this.rawDisplay.match(/(√?-?\d+(\.\d+)?%?|√?\.\d+%?|\d+(\.\d+)?%?)$/);
-      if (match) {
-        const idx = this.rawDisplay.lastIndexOf(match[0]);
-        this.rawDisplay = this.rawDisplay.slice(0, idx);  // %を含めて全部削除
-        this.display = '0';
-        this.updateFormattedDisplays();
-      }
+      this.clearEntry(); //🐧
       this.isFromPercent = false;
       return;
     }
-
-    // √の結果だったら、直前の値だけを削除（CE動作）
     if (this.isFromRoot) {
-      const match = this.rawDisplay.match(/(√?-?\d+(\.\d+)?|√?\.\d+)/);
-      if (match) {
-        const idx = this.rawDisplay.lastIndexOf(match[0]);
-        this.rawDisplay = this.rawDisplay.slice(0, idx);
-        this.display = '0';
-        this.updateFormattedDisplays();
-      }
+      this.clearEntry(); //🐧
       this.isFromRoot = false;
       return;
     }
-
-    // 🔸式入力前（＝を押してない状態）なら display を削るだけ
-    if (!this.showFormula) {
-      // 演算子が入力された直後はBackspaceを無反応にする
-      if (/[+\−\*\/]$/.test(this.rawDisplay)) {
-        return; // 末尾が演算子の場合、Backspaceを無効化
-      }
-
-      // カンマを一時的に削除
-      let displayWithoutCommas = this.display.replace(/,/g, '');
-
-      // 一桁の負の数（例えば"-8"）の場合はBackspace無効にする
-      if (displayWithoutCommas.length === 2 && displayWithoutCommas.startsWith('-')) {
-        this.display = '0';
-        this.rawDisplay = '0';
-      } else if (displayWithoutCommas.length > 1) {
-        // 末尾1文字を削除
-        displayWithoutCommas = displayWithoutCommas.slice(0, -1);
-        // rawDisplay も同期して更新
-        this.rawDisplay = this.rawDisplay.slice(0, -1);
-
-        // 空になった場合や不正な状態になった場合は0にする
-        if (!displayWithoutCommas || displayWithoutCommas === '-' || displayWithoutCommas === '.' ||
-          displayWithoutCommas === '0.' || displayWithoutCommas === '0') {
-          displayWithoutCommas = '0';
-          this.rawDisplay = '0';
-        }
-      } else {
-        displayWithoutCommas = '0';
-        this.rawDisplay = '0';
-      }
-
-      // カンマを再度挿入
-      this.display = this.formatNumber(displayWithoutCommas);
-      this.updateFormattedDisplays();
+    // 一桁の負の数（例: '-8'）のときはCEと同じ動作
+    if (this.display.length === 2 && this.display.startsWith('-')) { //🐧
+      this.clearEntry();
       return;
     }
-
-    // 🔹ここから下は「＝を押したあと or 演算式がある場合」の処理
-    // 演算子が末尾にある場合、Backspaceを無効化する
-    if (/[+\−\*\/]$/.test(this.rawDisplay)) {
-      return;
-    }
-
-    const signAndDigitMatch = this.rawDisplay.match(/(.+[\+\−\*\/])(√?-?\d)$/);
-    if (signAndDigitMatch) {
-      const toDelete = signAndDigitMatch[2];
-      if (toDelete.length === 2 && toDelete.startsWith('-')) {
-        // 例: "+-9" → "+" の処理
-        this.rawDisplay = signAndDigitMatch[1];
-      } else {
-        // 末尾の数字だけ削除
-        const shortened = toDelete.slice(0, -1);
-        this.rawDisplay = signAndDigitMatch[1] + (shortened || '0');
-      }
+    // displayの末尾1文字を削除、空や1文字なら0に
+    if (this.display.length > 1) {
+      this.display = this.display.slice(0, -1); //🐧
+      // rawDisplayの末尾の数字も1文字削除
+      this.rawDisplay = this.rawDisplay.replace(/(\d)(?!.*\d)/, ''); //🐧
     } else {
-      // 通常の1文字削除
-      this.rawDisplay = this.rawDisplay.slice(0, -1);
+      this.display = '0'; //🐧
+      // rawDisplayの末尾の数字も削除
+      this.rawDisplay = this.rawDisplay.replace(/(\d)(?!.*\d)/, ''); //🐧
     }
-
-    // 空や不完全な状態の補正
-    if (!this.rawDisplay || this.rawDisplay === '-' || this.rawDisplay === '√-' || this.rawDisplay === '√') {
-      this.rawDisplay = '0';
-    }
-
-    // 表示更新
-    this.display = this.formatDisplay(this.rawDisplay);
-    this.formula = ''; // 式はクリア
     this.updateFormattedDisplays();
-  }
+  } //🐧
 
 
 
@@ -316,30 +249,31 @@ export class AppComponent implements AfterViewInit {
 
 
   clearEntry() {
-    if (this.display === '無効な計算です' || this.display.startsWith('エラー')) {
-      this.clearDisplay();
-      return;
-    }
-
-    if (this.justCalculated) {
-      this.clearDisplay();
+    // エラーや計算直後は全体クリア
+    if (this.display === '無効な計算です' || this.display.startsWith('エラー') || this.justCalculated) {
+      this.rawDisplay = '0';
+      this.display = '0';
+      this.formula = '';
+      this.showFormula = false;
+      this.justCalculated = false;
+      this.isError = false;
       this.updateFormattedDisplays();
       return;
     }
-
-    // CE を押したときに「−」を「-」に変換
-    this.rawDisplay = this.rawDisplay.replace(/−/g, '-');
-
-
-    // 「rawDisplay が数字だけ」の場合 → 全体クリア
-    if (/^-?\d*\.?\d*$/.test(this.rawDisplay)) {
-      this.clearDisplay(); // ←←← ここ！スッキリ
-    } else {
-      // 最後の数字だけ消す（演算子は残す）
-      this.rawDisplay = this.rawDisplay.replace(/([+\-*/])[^+\-*/]*$/, '$1');
+    // displayが0でなければ、rawDisplayの末尾が数字ならその数字だけ消す
+    if (this.display !== '0') {
+      this.rawDisplay = this.rawDisplay.replace(/(-?\d+(\.\d+)?)(?!.*\d)/, ''); //🐧
       this.display = '0';
+      this.updateFormattedDisplays();
+      return;
     }
-  }
+    // それ以外は今のまま
+    this.display = '0';
+    this.rawDisplay = this.rawDisplay;
+    this.updateFormattedDisplays();
+  } //🐧
+  
+  
 
 
   resetHistory() {
@@ -396,7 +330,8 @@ export class AppComponent implements AfterViewInit {
       this.display = formatted;
       this.updateFormattedDisplays();
 
-  
+      this.isFromRoot = true; //🐧
+
       return;
 
     }
@@ -426,6 +361,41 @@ export class AppComponent implements AfterViewInit {
     // appendValue: classic calculator logic
     if (/^[0-9]$/.test(value)) {
       const lastChar = this.rawDisplay.slice(-1);
+      // displayとrawDisplayが両方'0'なら、上書き
+      if (this.display === '0' && (this.rawDisplay === '0' || this.rawDisplay === '')) {
+        this.display = this.formatNumber(value); //🐧
+        this.rawDisplay = value; //🐧
+        this.updateFormattedDisplays();
+        return;
+      }
+      // displayが'0'（CE直後など）なら
+      if (this.display === '0') {
+        if (/[+\-−*/×÷]$/.test(this.rawDisplay) || this.rawDisplay === '' || this.rawDisplay === '0') { //🐧
+          // 末尾が演算子 or 空 or 0 → そのまま追加
+          this.rawDisplay += value;
+        } else {
+          // 末尾が数字 → その数字を消してから追加
+          this.rawDisplay = this.rawDisplay.replace(/(\d+)(?!.*\d)/, '') + value; //🐧
+        }
+        this.display = this.formatNumber(value);
+        this.updateFormattedDisplays();
+        return;
+      }
+      // 直前が演算子なら新しい数字ブロック
+      let currentBlock = '';
+      if (operators.includes(lastChar)) {
+        currentBlock = '';
+      } else {
+        const match = this.rawDisplay.match(/(?:^|[+\-*/×÷])(-?\d*\.?\d*)$/);
+        currentBlock = match ? match[1] : '';
+      }
+      const [intPart = '', decimalPart = ''] = currentBlock.split('.');
+      const isDecimal = currentBlock.includes('.');
+      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
+      const totalDigits = cleanInt.length + decimalPart.length;
+      if (!isDecimal && cleanInt.length >= 10) return; //🐧
+      if (isDecimal && decimalPart.length >= 8) return; //🐧
+      if (totalDigits >= 18) return; //🐧
       // 直前が演算子なら display を新しい数字で上書き
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧
@@ -541,36 +511,22 @@ export class AppComponent implements AfterViewInit {
 
     if (value === '±') {
       if (!this.display || this.display === '0') return;
+      // rawDisplayの末尾が数字でない場合は無視
+      if (!/(\d+)(?!.*\d)/.test(this.rawDisplay)) return; //🐧
 
-      // √が含まれているかを確認
-      const match = this.rawDisplay.match(/([+\-×÷])?(-?√?-?\d+(?:\.\d+)?)(%?)$/);
-      if (match) {
-        const rawNum = match[0];
-        const idx = this.rawDisplay.lastIndexOf(rawNum);
-
-        // %があればそのまま後ろに付け直す
-        const hasPercent = this.rawDisplay.slice(idx + rawNum.length).startsWith('%');
-
-        if (rawNum.startsWith('√')) {
-          // √が含まれている場合
-          if (rawNum.startsWith('-√')) {
-            // 既に負の√がある場合は、正の√に変更
-            this.rawDisplay = this.rawDisplay.slice(0, idx) + rawNum.replace('-√', '√');
-          } else {
-            // 正の√がある場合は、負の√に変更
-            this.rawDisplay = this.rawDisplay.slice(0, idx) + '-' + rawNum;
-          }
-        } else {
-          // √以外の場合の符号切り替え
-          const toggled = -parseFloat(rawNum);
-          const toggledStr = String(toggled);
-          this.rawDisplay = this.rawDisplay.slice(0, idx) + toggledStr + (hasPercent ? '%' : '');
-          this.display = this.formatNumber(toggledStr) + (hasPercent ? '%' : '');
-        }
-
-        this.updateFormattedDisplays();
+      // displayの符号切り替え
+      if (this.display.startsWith('-')) {
+        this.display = this.display.slice(1);
+      } else {
+        this.display = '-' + this.display;
       }
 
+      // rawDisplayの末尾の数字ブロックの符号も切り替え
+      this.rawDisplay = this.rawDisplay.replace(/(-?)(\d+(?:\.\d+)?)(?!.*\d)/, (match, sign, num) => {
+        return (sign === '-' ? '' : '-') + num;
+      }); //🐧
+
+      this.updateFormattedDisplays();
       return;
     }
 
@@ -611,11 +567,11 @@ export class AppComponent implements AfterViewInit {
     }
 
     if (value === '.') {
-      const lastChar = this.rawDisplay.slice(-1);
-      const isAfterOperator = ['+', '−', '*', '/', '×', '÷'].includes(lastChar);
+      // 直前が演算子なら0.で始める
+      const isAfterOperator = /[+\-−*/×÷]$/.test(this.rawDisplay); //🐧
 
       // 現在の数値ブロックを取得
-      const match = this.rawDisplay.match(/(?:^|[+\−*/×÷])(-?\d*\.?\d*)$/);
+      const match = this.rawDisplay.match(/(?:^|[+\-−*/×÷])(-?\d*\.?\d*)$/);
       const currentBlock = match ? match[1] : this.rawDisplay;
 
       // 既に小数点がある場合は追加しない
@@ -623,12 +579,12 @@ export class AppComponent implements AfterViewInit {
 
       // rawDisplayが空または'0'の場合、または演算子の直後の場合
       if (!this.rawDisplay || this.rawDisplay === '0' || isAfterOperator) {
-        this.rawDisplay = this.rawDisplay === '0' ? '0.' : this.rawDisplay + '0.';
-        this.display = this.display === '0' ? '0.' : this.display + '.'; //🐧
+        this.rawDisplay = (this.rawDisplay === '0' || isAfterOperator) ? this.rawDisplay.replace(/0$/, '') + '0.' : this.rawDisplay + '0.'; //🐧
+        this.display = '0.'; //🐧
       } else {
         this.rawDisplay += '.';
         if (!this.display.includes('.')) {
-          this.display += '.'; //🐧
+          this.display += '.';
         }
       }
 
@@ -665,6 +621,21 @@ export class AppComponent implements AfterViewInit {
 
     if (/^[0-9]$/.test(value)) {
       const lastChar = this.rawDisplay.slice(-1);
+      // 直前が演算子なら新しい数字ブロック
+      let currentBlock = '';
+      if (operators.includes(lastChar)) {
+        currentBlock = '';
+      } else {
+        const match = this.rawDisplay.match(/(?:^|[+\-*/×÷])(-?\d*\.?\d*)$/);
+        currentBlock = match ? match[1] : '';
+      }
+      const [intPart = '', decimalPart = ''] = currentBlock.split('.');
+      const isDecimal = currentBlock.includes('.');
+      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
+      const totalDigits = cleanInt.length + decimalPart.length;
+      if (!isDecimal && cleanInt.length >= 10) return; //🐧
+      if (isDecimal && decimalPart.length >= 8) return; //🐧
+      if (totalDigits >= 18) return; //🐧
       // 直前が演算子なら display を新しい数字で上書き
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧

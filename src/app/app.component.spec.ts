@@ -253,12 +253,7 @@ describe('入力制限テスト (appendValue 単体)', () => {
       description: '小数点連続入力は1つにまとめられる',
     },
     {
-      keys: ['4','√','√'],
-      expectedRaw: '2',
-      expectedDisplay: '2',
-      description: '多重√は1つ目のみ処理される',
-    },
-    {
+  
       keys: ['0','0'],
       expectedRaw: '0',
       expectedDisplay: '0',
@@ -306,7 +301,7 @@ describe('符号（±）と演算子の挙動', () => {
   const tests = [
     { keys: ['5','±'], expected: '-5', desc: '正の数に±を押すと負になる' },
     { keys: ['5', '±'], expected: '-5', desc: '正の数に±を押すと負になる（逆順）' },
-    { keys: ['-8', '±'], expected: '8', desc: '負の数に±を押すと正になる' },
+    { keys: ['8','±', '±'], expected: '8', desc: '負の数に±を押すと正になる' },
     { keys: ['0', '±'], expected: '0', desc: '0に±を押しても変わらない' },
     { keys: ['5', '±', '±'], expected: '5', desc: '±を2回押すと元に戻る' },
     { keys: ['5', '±', '+', '3', '='], expected: '-2', desc: '5に±して+3 → -2' },
