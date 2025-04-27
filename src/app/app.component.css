@@ -57,14 +57,10 @@
 }
 
 .buttons {
-  
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(6, 65px); 
+  grid-template-rows: repeat(6, 65px);
   gap: 8px;
-  padding-bottom: 5px;
-  height: 100%; /* 明示的に高さを指定 */
-  overflow: hidden; /* ボタンがはみ出すのを防ぐ */
 }
 
 button {
@@ -125,5 +121,12 @@ button.double-height {
 button[data-key="⌫"] {
   padding: 6px 8px; /* 内側の余白も少し調整 */
   }
+
+.equal.triple-height {
+  grid-row: 4 / span 3; /* 4段目から3行分 */
+  grid-column: 4 / 5;   /* 右端の列 */
+  height: 100%;
+  font-size: 1.5em;
+}
 
 

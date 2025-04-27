@@ -1,4 +1,3 @@
-
 <body>
   <div class="calculator-wrapper">
       <!-- キーボード入力がで↓きるようになる -->
@@ -16,33 +15,33 @@
         <button class="special" (click)="appendValue('/'); focusBack($event)" data-key="/">÷</button>
 
         <!-- 2段目 -->
-        <button class="special" (click)="appendValue('√'); focusBack($event)" data-key="√">√</button>
         <button class="special" (click)="appendValue('±'); focusBack($event)" data-key="F9">±</button>
         <button class="special" (click)="appendValue('%'); focusBack($event)" data-key="%">%</button>
         <button class="special" (click)="appendValue('*'); focusBack($event)" data-key="*">×</button>
-
-        <!-- 3段目 -->
-        <button class="number" (click)="appendValue('7'); focusBack($event)" data-key="7">7</button>
+      　<button class="special" (click)="appendValue('−'); focusBack($event)" data-key="−">-</button>
+       
+      　
+      　<button class="number" (click)="appendValue('7'); focusBack($event)" data-key="7">7</button>
         <button class="number" (click)="appendValue('8'); focusBack($event)" data-key="8">8</button>
         <button class="number" (click)="appendValue('9'); focusBack($event)" data-key="9">9</button>
-        <button class="special" (click)="appendValue('−'); focusBack($event)" data-key="−">-</button>
+        <button class="special" (click)="appendValue('+'); focusBack($event)" data-key="+">+</button>
 
         <!-- 4段目 -->
         <button class="number" (click)="appendValue('4'); focusBack($event)" data-key="4">4</button>
         <button class="number" (click)="appendValue('5'); focusBack($event)" data-key="5">5</button>
         <button class="number" (click)="appendValue('6'); focusBack($event)" data-key="6">6</button>
-        <button class="special" (click)="appendValue('+'); focusBack($event)" data-key="+">+</button>
+        <button class="equal triple-height" (click)="calculateResult(); focusBack($event)" data-key="=">=</button>
 
         <!-- 5段目 -->
         <button class="number" (click)="appendValue('1'); focusBack($event)" data-key="1">1</button>
         <button class="number" (click)="appendValue('2'); focusBack($event)" data-key="2">2</button>
         <button class="number" (click)="appendValue('3'); focusBack($event)" data-key="3">3</button>
-        <button class="equal double-height" (click)="calculateResult(); focusBack($event)" data-key="=">=</button>
+        <!-- 右端は空ける -->
 
         <!-- 6段目（最下段） -->
         <button class="number double-width" (click)="appendValue('0'); focusBack($event)" data-key="0">0</button>
         <button class="number" (click)="appendValue('.'); focusBack($event)" data-key=".">.</button>
-        <span></span> <!-- ダミー要素：グリッドバランス用 -->
+        <span></span>
       </div>
     </div>
   </div>

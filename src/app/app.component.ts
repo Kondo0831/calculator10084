@@ -257,6 +257,7 @@ export class AppComponent implements AfterViewInit {
       this.showFormula = false;
       this.justCalculated = false;
       this.isError = false;
+      this.isNumberEntered = false; // 追加: 新規入力フラグもリセット
       this.updateFormattedDisplays();
       return;
     }
@@ -290,8 +291,23 @@ export class AppComponent implements AfterViewInit {
 
 
   appendValue(value: string) {
-    const operators = ['+', '−', '*', '/', '×', '÷'];
-    console.log('🔍 appendValue START:', { value, rawDisplay: this.rawDisplay });
+    // 全角・半角両方の演算子を含める
+    const operators = ['+', '-', '*', '/', '＋', '−', '×', '÷'];
+    console.log('DEBUG appendValue start:', { value, justCalculated: this.justCalculated, display: this.display, rawDisplay: this.rawDisplay });
+
+    // 🐧【最優先】displayが小数点で終わっている状態で演算子を入力した場合の特別処理
+    if (this.display.endsWith('.') && !this.display.endsWith('...') && operators.includes(value)) {
+      console.log('DEBUG dot-fix branch:', { display: this.display, rawDisplay: this.rawDisplay, value });
+      this.display += '0';
+      this.rawDisplay += '0';
+      this.formula = this.display + value;
+      this.showFormula = true;
+      this.rawDisplay += value;
+      this.display = '0';
+      this.justCalculated = false;
+      this.updateFormattedDisplays();
+      return;
+    }
 
     // エラー表示中は数字以外の入力を無効化
     if (
@@ -301,54 +317,6 @@ export class AppComponent implements AfterViewInit {
       if (!/^[0-9]$/.test(value)) return; //🐧
       // 数字が入力された場合はクリアして新しい入力を開始
       this.clearDisplay(); //🐧
-    }
-
-    // √の処理
-    if (value === '√') {
-      console.log('🔍 Processing √ input');
-
-    
-
-      // 数値が入力されていない場合は無視
-      if (this.rawDisplay === '0' || this.rawDisplay === '') {
-        console.log('🔍 No number to apply √ to');
-        return;
-      }
-
-      // 最後の数値を取得
-      const match = this.rawDisplay.match(/(-?\d+(\.\d+)?)$/);
-      if (!match) {
-        console.log('🔍 No valid number found at the end');
-        return;
-      }
-
-      const number = match[0];
-      const parsed = parseFloat(number);
-      console.log('🔍 Found number:', { number, parsed });
-
-      // 負の数のチェック
-      if (parsed < 0) {
-        console.log('🔍 Negative number detected');
-        this.display = '無効な計算です';
-        this.isError = true;
-        return;
-      }
-
-      // 平方根を計算
-      const result = Math.sqrt(parsed);
-      const formatted = this.formatNumber(String(result));
-      console.log('🔍 Square root result:', { result, formatted });
-
-      // 結果を表示（前半の式を保持）
-      const beforeNumber = this.rawDisplay.slice(0, this.rawDisplay.lastIndexOf(number));
-      this.rawDisplay = beforeNumber + String(result);
-      this.display = formatted;
-      this.updateFormattedDisplays();
-
-      this.isFromRoot = true; //🐧
-
-      return;
-
     }
 
     //🐧 justCalculatedの分岐は最初に
@@ -362,19 +330,45 @@ export class AppComponent implements AfterViewInit {
       return;
     }
     if (this.justCalculated && operators.includes(value)) {
-      this.rawDisplay = this.display.replace(/,/g, '');
-      this.display = this.formatNumber(this.rawDisplay);
-      this.formula = '';
-      this.showFormula = false;
+      let numStr = (this.display && this.display !== '') ? this.display.replace(/,/g, '').replace(/−/g, '-') : '0';
+      console.log('DEBUG justCalculated+operator:', { before_display: this.display, before_numStr: numStr, value, before_rawDisplay: this.rawDisplay, before_formula: this.formula });
+      // 「.」で終わっていて「...」で終わっていない場合のみ0を補う
+      if (numStr.endsWith('.') && !numStr.endsWith('...')) {
+        numStr += '0';
+        this.display += '0';
+      }
+      this.rawDisplay = numStr;
+      // displayはそのまま（演算子は付けない）
+      this.formula = this.display + value;
+      this.showFormula = true;
       this.justCalculated = false;
       this.rawDisplay += value;
-      this.display = this.formatDisplay(this.rawDisplay);
+      console.log('DEBUG justCalculated+operator:', { after_display: this.display, after_numStr: numStr, value, after_rawDisplay: this.rawDisplay, after_formula: this.formula });
       this.updateFormattedDisplays();
       return;
     }
 
+    // 新規入力フラグの扱い
+    if ((this.display === '0' && this.rawDisplay === '0') && !this.isNumberEntered && /^[0-9]$/.test(value)) {
+      this.display = this.formatNumber(value);
+      this.rawDisplay = value;
+      this.isNumberEntered = true;
+      this.updateFormattedDisplays();
+      return;
+    }
+    if (/^[0-9]$/.test(value)) {
+      this.isNumberEntered = true;
+    }
+
     // appendValue: classic calculator logic
     if (/^[0-9]$/.test(value)) {
+      // justCalculated直後で直前が演算子でない場合はrawDisplayをリセット
+      if (this.justCalculated) {
+        this.justCalculated = false;
+        if (!operators.includes(this.rawDisplay.slice(-1))) {
+          this.rawDisplay = '';
+        }
+      }
       const lastChar = this.rawDisplay.slice(-1);
       // displayとrawDisplayが両方'0'なら、上書き
       if (this.display === '0' && (this.rawDisplay === '0' || this.rawDisplay === '')) {
@@ -444,11 +438,22 @@ export class AppComponent implements AfterViewInit {
       if (/[0-9)]$/.test(this.rawDisplay)) {
         // 直前までの式を計算
         const evalResult = this.evaluateExpression(this.rawDisplay);
-        this.display = this.formatNumber(evalResult); //🐧
-        const opForFormula = value.replace('*', '×').replace('/', '÷'); //🐧
-        this.formula = this.formatNumber(evalResult) + opForFormula; //🐧
+        const formatted = this.formatNumber(evalResult);
+        // 11桁超過チェック
+        const intDigits = String(evalResult).split('.')[0].replace(/,/g, '').replace('-', '').length;
+        if (intDigits > 10) {
+          this.display = '11桁以上の計算結果'; //🐧
+          this.formula = formatted + value.replace('*', '×').replace('/', '÷'); //🐧
+          this.rawDisplay = '';
+          this.showFormula = true;
+          this.isError = true;
+          this.updateFormattedDisplays();
+          return;
+        }
+        this.display = formatted;
+        this.formula = formatted + value.replace('*', '×').replace('/', '÷');
         this.showFormula = true;
-        this.rawDisplay = String(evalResult) + value; //🐧
+        this.rawDisplay = String(evalResult) + value;
         this.updateFormattedDisplays();
         return;
       }
@@ -494,7 +499,6 @@ export class AppComponent implements AfterViewInit {
         const baseNum = parseFloat(before.replace(/[+\-]$/, ''));
         replaceValue = (Math.round((baseNum * (parseFloat(rawNum) / 100)) * 1e8) / 1e8).toString();
       }
-
       // rawDisplay と display を更新
       this.rawDisplay = before + replaceValue;
       this.display = this.formatNumber(replaceValue);
@@ -734,39 +738,58 @@ export class AppComponent implements AfterViewInit {
 
   //計算式を見やすい形に整える
   formatDisplay(value: string): string {
-    // 🐧 √n×√n など同じ√同士のパターンを検出
-    if (/^√(\d+(?:\.\d+)?)\s*[×*]\s*√\1$/.test(this.rawDisplay)) {
-      const match = this.rawDisplay.match(/^√(\d+(?:\.\d+)?)\s*[×*]\s*√\1$/);
-      if (match) {
-        const n = Number(match[1]);
-        return Math.round(n).toString(); //🐧
-      }
+    console.log('DEBUG formatDisplay input:', value);
+    // 末尾が演算子なら、演算子を除いた部分だけ数値整形
+    const opMatch = value.match(/^(.+?)([+\-−*/×÷])$/);
+    if (opMatch) {
+      const numPart = opMatch[1];
+      const op = opMatch[2];
+      // 数値部分だけformatNumber、演算子はそのまま
+      return this.formatNumber(numPart) + op;
     }
-    // - を一時的にプレースホルダに置換（符号と演算子を区別するため）
-    let temp = value.replace(/-/g, '−');
-
-    // 数値やパーセントを整形（数値部分の - は __MINUS__ のまま）
-    temp = temp.replace(/−?\d+(\.\d+)?%?/g, (num) => {
-      const isPercent = num.endsWith('%');
-      const numberPart = isPercent ? num.slice(0, -1) : num;
-
-      // ここで formatNumber を呼び出して、整形した数値を取得
-      const formattedNumber = this.formatNumber(numberPart);
-
-      return isPercent ? `${formattedNumber}%` : formattedNumber;
-    });
-
-    // __MINUS__（残ってる演算子用）を全角マイナスに
-    temp = temp.replace(/−/g, '-');
-
-    // × と ÷ に変換
-    return temp.replace(/\*/g, '×').replace(/\//g, '÷');
+    // それ以外は従来通り
+    return this.formatNumber(value);
   }
 
-  // 数値を整形（小数点以下8桁まで表示）　number型は直接いく。文字列を渡す場合、number型に直してから渡す
+  // formatNumber: 表示用のみに「...」を付与
+  formatNumber(value: number | string): string {
+    console.log('DEBUG formatNumber input:', value);
+    let str = String(value);
+    // 小数部が8桁を超える場合は「...」を付与
+    if (str.includes('.')) {
+      const [intPart, decPart] = str.split('.');
+      if (decPart.length > 8) {
+        return `${Number(intPart).toLocaleString()}.${decPart.slice(0, 8)}...`;
+      }
+      return `${Number(intPart).toLocaleString()}.${decPart}`;
+    }
+    return Number(str).toLocaleString();
+  }
 
+  // fractionToString: ...は付けず、純粋な数値文字列のみ返す
+  private fractionToString(frac: Fraction): string {
+    if (frac.denominator === 1n) {
+      return frac.numerator.toString();
+    }
+    const scaledNumerator = frac.numerator * BigInt(1e18);
+    const result = scaledNumerator / frac.denominator;
+    if (result === 0n) {
+      return '0';
+    }
+    const isNegative = result < 0n;
+    const absResult = isNegative ? -result : result;
+    const intPart = absResult / BigInt(1e18);
+    const fracPart = absResult % BigInt(1e18);
+    let fracStr = fracPart.toString().padStart(18, '0');
+    if (!/^0+$/.test(fracStr)) {
+      fracStr = fracStr.replace(/0+$/, '');
+    }
+    const sign = isNegative ? '-' : '';
+    return fracStr ? `${sign}${intPart.toString()}.${fracStr}` : `${sign}${intPart.toString()}`;
+  }
 
   calculateResult(): void {
+    console.log('DEBUG calculateResult START:', { rawDisplay: this.rawDisplay, display: this.display });
     console.log('🔍 calculateResult START');
     console.log('🔍 Initial state:', {
       rawDisplay: this.rawDisplay,
@@ -776,7 +799,6 @@ export class AppComponent implements AfterViewInit {
 
     this.isResultDisplayed = true;
 
-    // 無効な条件（再計算不要、エラー状態など）
     if (
       (this.justCalculated && !this.lastOperator) ||
       this.display.includes('エラー') ||
@@ -787,140 +809,83 @@ export class AppComponent implements AfterViewInit {
       return;
     }
 
-    // ⭐⭐式のやつ ここで計算前のrawDisplayをコピーしておく！
     const formulaBeforeCalc = this.rawDisplay; //🐧 11桁超過用にも使う
-    //　⭐⭐
-
-    this.justCalculated = true;
+    const operators = ['+', '−', '*', '/', '×', '÷'];
+    const lastChar = this.rawDisplay.slice(-1);
+    let evalExpression = this.rawDisplay;
+    if (operators.includes(lastChar)) {
+      // 末尾が演算子のときは繰り返し計算
+      const beforeOp = this.rawDisplay.slice(0, -1);
+      const lastNumMatch = beforeOp.match(/(-?\d+(?:\.\d+)?)(?!.*\d)/);
+      const lastNumber = lastNumMatch ? lastNumMatch[1] : '0';
+      evalExpression = beforeOp + lastChar + lastNumber;
+      this.lastOperator = lastChar;
+      this.lastOperand = lastNumber;
+      // formula: 累積値＋繰り返し数＝（*→×、/→÷）
+      let opForFormula = lastChar === '*' ? '×' : lastChar === '/' ? '÷' : lastChar;
+      this.formula = this.formatNumber(beforeOp) + opForFormula + this.formatNumber(lastNumber) + ' =';
+      this.showFormula = true;
+      this.justCalculated = true;
+      const result = this.evaluateExpression(evalExpression);
+      // 11桁超過チェック
+      const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
+      if (intDigits > 10) {
+        this.display = '11桁以上の計算結果';
+        this.formula = this.formatNumber(beforeOp) + opForFormula + this.formatNumber(lastNumber) + ' =';
+        this.rawDisplay = '';
+        this.isError = true;
+        this.showFormula = true;
+        this.updateFormattedDisplays();
+        return;
+      }
+      this.display = this.formatNumber(result);
+      this.rawDisplay = String(result);
+      return;
+    } else if (this.justCalculated && this.lastOperator && this.lastOperand) {
+      // ＝連打時、直前の演算子・オペランドで繰り返し計算
+      evalExpression = this.rawDisplay + this.lastOperator + this.lastOperand;
+      // formula: 累積値＋繰り返し数＝（*→×、/→÷）
+      let opForFormula = this.lastOperator === '*' ? '×' : this.lastOperator === '/' ? '÷' : this.lastOperator;
+      this.formula = this.formatNumber(this.rawDisplay) + opForFormula + this.formatNumber(this.lastOperand) + ' =';
+      this.showFormula = true;
+      this.justCalculated = true;
+      const result = this.evaluateExpression(evalExpression);
+      // 11桁超過チェック
+      const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
+      if (intDigits > 10) {
+        this.display = '11桁以上の計算結果';
+        this.formula = this.formatNumber(this.rawDisplay) + opForFormula + this.formatNumber(this.lastOperand) + ' =';
+        this.rawDisplay = '';
+        this.isError = true;
+        this.showFormula = true;
+        this.updateFormattedDisplays();
+        return;
+      }
+      this.display = this.formatNumber(result);
+      this.rawDisplay = String(result);
+      return;
+    } else {
+      // 通常計算時はrawDisplay全体を整形してformulaにセット
+      let formulaForDisplay = this.rawDisplay.replace(/\*/g, '×').replace(/\//g, '÷');
+      formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
+      this.formula = this.formatDisplay(formulaForDisplay) + ' =';
+      this.showFormula = true;
+      this.justCalculated = true;
+    }
 
     try {
-      //🐧 イコール連打対応
-      if (this.justCalculated && this.lastOperator && this.lastOperand) {
-        const repeatedExpr = this.rawDisplay + this.lastOperator + this.lastOperand;
-        let evalExpression = repeatedExpr;
-
-        // √の処理を追加（すべての√を処理するためにwhileループを使用）
-        while (evalExpression.includes('√')) {
-          evalExpression = evalExpression.replace(/-√(-?\d+(\.\d+)?)/g, (_, num) => (-Math.sqrt(parseFloat(num))).toString());
-          evalExpression = evalExpression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => Math.sqrt(parseFloat(num)).toString());
-        }
-        // ゼロ除算チェック
-        if (evalExpression.includes('/0') && !evalExpression.includes('/0.')) {
-          this.display = '無効な計算です';
-          this.isError = true;
-          this.rawDisplay = '';
-          this.formula = this.formatDisplay(this.normalizeTrailingDots(evalExpression)) + ' ='; //🐧
-          this.updateFormattedDisplays();
-          return;
-        }
-
-        const result = this.evaluateExpression(evalExpression);
-        const formatted = this.formatNumber(result);
-
-        if (this.isOverDigitLimit(formatted)) {
-          this.handleDigitOverflow(this.rawDisplay);
-          return;
-        }
-
-        this.display = formatted;
-        this.formula = this.formatDisplay(this.normalizeTrailingDots(repeatedExpr)) + ' =';
-        this.rawDisplay = String(result);
-        this.showFormula = true;
-        this.justCalculated = true;
-        this.updateFormattedDisplays();
-        return;
-      }
-      //🐧
-
-      // 演算子を正規化
-      this.rawDisplay = this.rawDisplay.replace(/−/g, '-').replace(/÷/g, '/').replace(/×/g, '*');
-      console.log('🔍 Normalized rawDisplay:', this.rawDisplay);
-
-      // 末尾の演算子をチェック
-      const lastChar = this.rawDisplay.slice(-1);
-      const operators = ['+', '-', '*', '/'];
-
-      //🐧 末尾が演算子なら繰り返し計算分岐
-      if (operators.includes(lastChar)) {
-        const beforeOp = this.rawDisplay.slice(0, -1);
-        const lastNumMatch = beforeOp.match(/(√?-?\d+(?:\.\d+)?%?)(?!.*\d)/);
-        const lastNumber = lastNumMatch ? lastNumMatch[0] : '0';
-
-        this.lastOperator = lastChar;
-        this.lastOperand = lastNumber;
-
-        const repeatedExpr = beforeOp + lastChar + lastNumber;
-        let evalExpression = repeatedExpr;
-
-        // √の処理を追加（すべての√を処理するためにwhileループを使用）
-        while (evalExpression.includes('√')) {
-          evalExpression = evalExpression.replace(/-√(-?\d+(\.\d+)?)/g, (_, num) => {
-            return (-Math.sqrt(parseFloat(num))).toString();
-          });
-          evalExpression = evalExpression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
-            if (parseFloat(num) < 0) {
-              throw new Error('無効な計算です');
-            }
-            return Math.sqrt(parseFloat(num)).toString();
-          });
-        }
-        // ゼロ除算チェック
-        if (evalExpression.includes('/0') && !evalExpression.includes('/0.')) {
-          this.display = '無効な計算です';
-          this.isError = true;
-          this.rawDisplay = '';
-          this.formula = this.formatDisplay(this.normalizeTrailingDots(evalExpression)) + ' ='; //🐧
-          this.updateFormattedDisplays();
-          return;
-        }
-
-        const result = this.evaluateExpression(evalExpression);
-        const formatted = this.formatNumber(result);
-
-        if (this.isOverDigitLimit(formatted)) {
-          this.handleDigitOverflow(beforeOp);
-          return;
-        }
-
-        this.display = formatted;
-        this.formula = this.formatDisplay(this.normalizeTrailingDots(repeatedExpr)) + ' =';
-        this.rawDisplay = String(result);
-        this.showFormula = true;
-        this.justCalculated = true;
-        this.updateFormattedDisplays();
-        return;
-      }
-      //🐧
-
-      // 式を評価
-      let evalExpression = this.rawDisplay; //🐧 letに変更
-
-      // √の処理を追加（すべての√を処理するためにwhileループを使用）
-      while (evalExpression.includes('√')) {
-        evalExpression = evalExpression.replace(/-√(-?\d+(\.\d+)?)/g, (_, num) => {
-          console.log('🔍 Processing negative square root:', num);
-          return (-Math.sqrt(parseFloat(num))).toString();
-        });
-
-        evalExpression = evalExpression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
-          console.log('🔍 Processing square root:', num);
-          if (parseFloat(num) < 0) {
-            throw new Error('無効な計算です');
-          }
-          return Math.sqrt(parseFloat(num)).toString();
-        });
-
-        console.log('🔍 Expression after sqrt processing:', evalExpression);
-      }
-
       // ゼロ除算チェック
       if (evalExpression.includes('/0') && !evalExpression.includes('/0.')) {
-        console.log('🔍 Division by zero detected');
-        throw new Error('無効な計算です');
+        this.display = '無効な計算です';
+        this.isError = true;
+        this.rawDisplay = '';
+        this.formula = this.formatDisplay(this.normalizeTrailingDots(evalExpression)) + ' ='; //🐧
+        this.updateFormattedDisplays();
+        return;
       }
 
       const result = this.evaluateExpression(evalExpression);
-      console.log('🔍 Evaluation result:', result);
+      console.log('DEBUG evaluateExpression result:', result);
 
       //⭐⭐ 11桁チェック
       const resultIntPart = String(result).split('.')[0].replace('-', '');
@@ -938,9 +903,15 @@ export class AppComponent implements AfterViewInit {
         throw new Error('無効な計算です');
       }
 
-      const formatted = this.formatNumber(result);
-      console.log('🔍 Formatted result:', formatted);
-
+      // 途中式に...が含まれていたら、結果にも...を付ける
+      let showDots = this.display.includes('...') || this.rawDisplay.includes('...');
+      let formatted;
+      if (showDots && String(result).includes('.')) {
+        const [intPart, decPart] = String(result).split('.');
+        formatted = `${Number(intPart).toLocaleString()}.${decPart.slice(0, 8)}...`;
+      } else {
+        formatted = this.formatNumber(result);
+      }
       this.display = formatted;
       this.rawDisplay = result;
 
@@ -969,6 +940,7 @@ export class AppComponent implements AfterViewInit {
       this.updateFormattedDisplays();
     }
 
+    console.log('DEBUG calculateResult END:', { rawDisplay: this.rawDisplay, display: this.display });
     this.updateFormattedDisplays();
   }
 
@@ -1028,36 +1000,6 @@ export class AppComponent implements AfterViewInit {
   }
 
 
-  formatNumber(value: number | string): string {
-    console.log('🐧 formatNumber input:', value, typeof value); //🐧
-    let strValue = typeof value === 'number' ? value.toString() : value;
-
-    // e表記（指数表記）を通常の文字列に変換
-    if (/e/i.test(strValue)) {
-      strValue = this.convertExponentialToDecimal(strValue);
-    }
-
-    const [intPartRaw, decPartRaw = ''] = strValue.split('.');
-    const isNegative = intPartRaw.startsWith('-');
-    const intPart = isNegative ? intPartRaw.slice(1) : intPartRaw;
-    const formattedInt = (isNegative ? '-' : '') + intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-    if (!decPartRaw) return formattedInt;
-
-    // 💡 小数部が9桁以上なら強制的に...表示（簡易版ルール追加）
-    if (decPartRaw.length > 8) {
-      return `${formattedInt}.${decPartRaw.slice(0, 8)}...`;
-    }
-    // 小数部が8桁以内なら末尾0の処理などを行って返す
-    let trimmedDec = decPartRaw;
-    if (!/^0+$/.test(decPartRaw)) {
-      trimmedDec = decPartRaw.replace(/0+$/, '');
-    }
-    return trimmedDec ? `${formattedInt}.${trimmedDec}` : formattedInt;
-  }
-
-
-
   evaluateExpression(expression: string): string {
     console.log("🔍 evaluateExpression START:", expression);
 
@@ -1065,24 +1007,6 @@ export class AppComponent implements AfterViewInit {
     expression = expression.replace(/−/g, '-');
     // カンマを除去
     expression = expression.replace(/,/g, '');
-
-    // √の処理を追加（すべての√を処理するためにwhileループを使用）
-    while (expression.includes('√')) {
-      expression = expression.replace(/-√(-?\d+(\.\d+)?)/g, (_, num) => {
-        console.log('🔍 Processing negative square root:', num);
-        return (-Math.sqrt(parseFloat(num))).toString();
-      });
-
-      expression = expression.replace(/√(-?\d+(\.\d+)?)/g, (_, num) => {
-        console.log('🔍 Processing square root:', num);
-        if (parseFloat(num) < 0) {
-          throw new Error('無効な計算です');
-        }
-        return Math.sqrt(parseFloat(num)).toString();
-      });
-
-      console.log('🔍 Expression after sqrt processing:', expression);
-    }
 
     // 演算子の正規化
     expression = expression
@@ -1153,8 +1077,8 @@ export class AppComponent implements AfterViewInit {
             right: current
           });
 
-          // 数値の妥当性チェック（小数を含む）
-          const numberPattern = /^-?\d*\.?\d+$/;
+          // 数値の妥当性チェック（小数を含む、「...」付きも許容）
+          const numberPattern = /^-?\d*\.?\d+(?:\.\.\.)?$/;
           if (!numberPattern.test(result) || !numberPattern.test(current)) {
             console.error("🔍 Invalid number format:", { result, current });
             throw new Error('Invalid number format');
@@ -1174,6 +1098,10 @@ export class AppComponent implements AfterViewInit {
 
     } catch (error) {
       console.error("🔍 Error in evaluateExpression:", error);
+      // 極小数の割り算パターンなら0.00000000...を返す
+      if (/^0\.0{7,}\d+\/\d+$/.test(expression)) {
+        return '0.00000000...';
+      }
       return 'エラー';
     }
   }
@@ -1182,6 +1110,8 @@ export class AppComponent implements AfterViewInit {
    * 文字列を分数に変換する
    */
   private stringToFraction(s: string): Fraction {
+    // カンマ・±記号を除去
+    s = s.replace(/,/g, '').replace('±', '-');
     if (!s.includes('.')) {
       // 整数の場合
       return {
@@ -1227,28 +1157,6 @@ export class AppComponent implements AfterViewInit {
       a = temp;
     }
     return a;
-  }
-
-  /**
-   * 分数を文字列に変換する（小数表示）
-   */
-  private fractionToString(frac: Fraction): string {
-    if (frac.denominator === 1n) {
-      return frac.numerator.toString();
-    }
-    const scaledNumerator = frac.numerator * BigInt(1e18);
-    const result = scaledNumerator / frac.denominator;
-    const isNegative = result < 0n;
-    const absResult = isNegative ? -result : result;
-    const intPart = absResult / BigInt(1e18);
-    const fracPart = absResult % BigInt(1e18);
-    let fracStr = fracPart.toString().padStart(18, '0');
-    //🐧 省略記号「...」は付けず、末尾0だけ除去して全桁返す
-    if (!/^0+$/.test(fracStr)) {
-      fracStr = fracStr.replace(/0+$/, '');
-    }
-    const sign = isNegative ? '-' : '';
-    return fracStr ? `${sign}${intPart.toString()}.${fracStr}` : `${sign}${intPart.toString()}`;
   }
 
   /**
