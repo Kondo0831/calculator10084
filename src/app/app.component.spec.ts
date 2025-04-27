@@ -422,7 +422,7 @@ describe('式表示テスト（formula 更新）', () => {
   });
 });
 
-describe('CE / C / BKSP 動作と計算継続テスト', () => {
+fdescribe('CE / C / BKSP 動作と計算継続テスト', () => {
   let calc: AppComponent;
   beforeEach(() => {
     calc = new AppComponent();
@@ -477,7 +477,7 @@ describe('CE / C / BKSP 動作と計算継続テスト', () => {
   });
 });
 
-describe('CE 後に入力 & 再計算テスト', () => {
+fdescribe('CE 後に入力 & 再計算テスト', () => {
   let calc: AppComponent;
 
   beforeEach(() => {

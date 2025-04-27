@@ -260,16 +260,21 @@ export class AppComponent implements AfterViewInit {
       this.updateFormattedDisplays();
       return;
     }
-    // displayが0でなければ、rawDisplayの末尾が数字ならその数字だけ消す
-    if (this.display !== '0') {
-      this.rawDisplay = this.rawDisplay.replace(/(-?\d+(\.\d+)?)(?!.*\d)/, ''); //🐧
+    // displayが0で、rawDisplayの末尾が演算子なら「0」を追加
+    if (this.display === '0' && /[+\-−*/×÷]$/.test(this.rawDisplay)) { //🐧
+      this.rawDisplay += '0';
+      this.updateFormattedDisplays();
+      return;
+    }
+    // displayが0でなければ、rawDisplayの末尾が数字のときだけ消す
+    if (this.display !== '0' && /[0-9]$/.test(this.rawDisplay)) { //🐧
+      this.rawDisplay = this.rawDisplay.replace(/(-?\d+(\.\d+)?)(?!.*\d)/, '');
       this.display = '0';
       this.updateFormattedDisplays();
       return;
     }
-    // それ以外は今のまま
+    // それ以外はdisplayだけ0に
     this.display = '0';
-    this.rawDisplay = this.rawDisplay;
     this.updateFormattedDisplays();
   } //🐧
   
@@ -287,6 +292,16 @@ export class AppComponent implements AfterViewInit {
   appendValue(value: string) {
     const operators = ['+', '−', '*', '/', '×', '÷'];
     console.log('🔍 appendValue START:', { value, rawDisplay: this.rawDisplay });
+
+    // エラー表示中は数字以外の入力を無効化
+    if (
+      this.display === '無効な計算です' ||
+      this.display === '11桁以上の計算結果'
+    ) {
+      if (!/^[0-9]$/.test(value)) return; //🐧
+      // 数字が入力された場合はクリアして新しい入力を開始
+      this.clearDisplay(); //🐧
+    }
 
     // √の処理
     if (value === '√') {
@@ -938,11 +953,9 @@ export class AppComponent implements AfterViewInit {
       //🐧
 
       // ⭐⭐計算前の式を使ってformulaを作る！//⭐⭐⭐さらに、＊を×にする
-      //🔥🔥
       let formulaForDisplay = formulaBeforeCalc.replace(/\*/g, '×').replace(/\//g, '÷');
       // 小数部が9桁以上なら...で省略
       formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
-      //🔥🔥
       this.formula = formulaForDisplay + ' =';
       this.showFormula = true;
       // ⭐⭐
