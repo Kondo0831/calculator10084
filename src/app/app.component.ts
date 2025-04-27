@@ -476,6 +476,24 @@ export class AppComponent implements AfterViewInit {
     }
 
     if (value === '%') {
+      const raw = this.rawDisplay;
+      if (!raw) return; // 空文字なら禁止
+    
+      // 演算子が含まれているかチェック（※この場合 × ÷ も考慮）
+      const hasOperator = /[+\-×÷*/]/.test(raw);
+    
+      // もし演算子なし、かつrawが数字だけなら％禁止
+      if (!hasOperator && /^[0-9.]+$/.test(raw)) {
+        return;
+      }
+    
+      const lastChar = raw.slice(-1);
+      if (!/[0-9)\-]/.test(lastChar) && lastChar !== '%' && lastChar !== '√') {
+        return;
+      }
+    }
+
+    if (value === '%') {
       const lastChar = this.rawDisplay.slice(-1);
       if (!/[0-9)]/.test(lastChar)) return;
 
@@ -586,27 +604,19 @@ export class AppComponent implements AfterViewInit {
     }
 
     if (value === '.') {
-      // 直前が演算子なら0.で始める
-      const isAfterOperator = /[+\-−*/×÷]$/.test(this.rawDisplay); //🐧
-
-      // 現在の数値ブロックを取得
-      const match = this.rawDisplay.match(/(?:^|[+\-−*/×÷])(-?\d*\.?\d*)$/);
-      const currentBlock = match ? match[1] : this.rawDisplay;
-
-      // 既に小数点がある場合は追加しない
-      if (currentBlock.includes('.')) return;
-
-      // rawDisplayが空または'0'の場合、または演算子の直後の場合
-      if (!this.rawDisplay || this.rawDisplay === '0' || isAfterOperator) {
-        this.rawDisplay = (this.rawDisplay === '0' || isAfterOperator) ? this.rawDisplay.replace(/0$/, '') + '0.' : this.rawDisplay + '0.'; //🐧
-        this.display = '0.'; //🐧
-      } else {
-        this.rawDisplay += '.';
-        if (!this.display.includes('.')) {
-          this.display += '.';
-        }
+      const lastChar = this.rawDisplay.slice(-1);
+      // 直前が演算子なら「0.」を追加
+      if (operators.includes(lastChar)) {
+        this.display = '0.';
+        this.rawDisplay += '0.';
+        this.updateFormattedDisplays();
+        return;
       }
-
+      // すでに小数点が含まれている場合は無視
+      const currentBlock = this.rawDisplay.split(/[+\-*/×÷]/).pop() || '';
+      if (currentBlock.includes('.')) return;
+      this.display += '.';
+      this.rawDisplay += '.';
       this.updateFormattedDisplays();
       return;
     }
@@ -813,6 +823,8 @@ export class AppComponent implements AfterViewInit {
     const operators = ['+', '−', '*', '/', '×', '÷'];
     const lastChar = this.rawDisplay.slice(-1);
     let evalExpression = this.rawDisplay;
+    // 末尾が「.」で終わる数値を「.0」に補正
+    evalExpression = this.normalizeTrailingDots(evalExpression);
     if (operators.includes(lastChar)) {
       // 末尾が演算子のときは繰り返し計算
       const beforeOp = this.rawDisplay.slice(0, -1);
@@ -867,6 +879,7 @@ export class AppComponent implements AfterViewInit {
     } else {
       // 通常計算時はrawDisplay全体を整形してformulaにセット
       let formulaForDisplay = this.rawDisplay.replace(/\*/g, '×').replace(/\//g, '÷');
+      formulaForDisplay = this.normalizeTrailingDots(formulaForDisplay);
       formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
       this.formula = this.formatDisplay(formulaForDisplay) + ' =';
       this.showFormula = true;
@@ -925,6 +938,7 @@ export class AppComponent implements AfterViewInit {
 
       // ⭐⭐計算前の式を使ってformulaを作る！//⭐⭐⭐さらに、＊を×にする
       let formulaForDisplay = formulaBeforeCalc.replace(/\*/g, '×').replace(/\//g, '÷');
+      formulaForDisplay = this.normalizeTrailingDots(formulaForDisplay);
       // 小数部が9桁以上なら...で省略
       formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
       this.formula = formulaForDisplay + ' =';
