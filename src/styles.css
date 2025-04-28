@@ -12,3 +12,7 @@ html, body {
 .calculator.calculator * {
   font-family: 'Share Tech Mono', monospace;
 }
+
+.expression { font-size: 18px; }
+.result { font-size: 33px; }
+

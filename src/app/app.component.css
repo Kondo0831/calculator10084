@@ -9,8 +9,8 @@
 
 .calculator {
   background: #e3f0fc; /* 淡い青 */
-  padding: 30px 20px 10px 20px;
-  width: 400px;
+  padding: 30px 20px 20px 20px;
+  width: 430px;
   max-width:90%;
   height: 590px;
   color: #183153;
@@ -22,33 +22,32 @@
   box-shadow: 0 6px 20px rgba(24, 49, 83, 0.10);
 }
 
-
 .expression {
-  font-size: 18px;
+  font-size: 17px;
   color: #888;
   text-align: right;
-  padding: 5px 6px;
+  padding: 5px 5px;
   margin-bottom: 30px;
-  overflow: hidden;
-  direction: rtl;
-  unicode-bidi: plaintext;
   height: 24px;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 36px;
 }
 
+
 .result {
-  font-size: 32px;
+  font-size: 33px;        /* 少し大きく */
   font-weight: 600;
   text-align: right;
-  padding: 0 12px;
+  padding: 4px 14px;      /* 上下にも少し余裕 */
   background-color: #fff;
   margin-top: 16px;
   margin-bottom: 30px;
   white-space: nowrap;
   overflow: hidden;
-  height: 48px;
-  line-height: 48px;
+  height: 60px;            /* 高さを増やす */
+  line-height: 60px;       /* 中央揃え */
   direction: ltr;
   border-bottom: 1px solid #ccc;
   letter-spacing: 0;
@@ -56,18 +55,19 @@
   box-shadow: 0 2px 8px rgba(24, 49, 83, 0.08);
 }
 
+
 .buttons {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(6, 65px);
-  gap: 8px;
+  grid-template-rows: repeat(6, 62px);
+  gap: 9px;
 }
 
 button {
   background-color: #c7e0fa; /* 淡いブルー */
   color: #183153;
-  font-size: 28px;
-  padding: 14px;
+  font-size: 20px;
+  padding: 8px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -105,7 +105,7 @@ button.pressed {
 
 /* =ボタンだけ目立たせる */
 .buttons button.equal {
-  background-color: #1565c0;
+  background-color: #3e7ec7;
   color: #fff;
   font-weight: bold;
   font-size: 32px;
