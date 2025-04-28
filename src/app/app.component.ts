@@ -301,6 +301,20 @@ export class AppComponent implements AfterViewInit {
 
 
   appendValue(value: string) {
+    // ＝の直後に％が押された場合は1/100する
+    if (value === '%' && this.justCalculated) {
+      const prevValue = parseFloat(this.rawDisplay.replace(/,/g, ''));
+      const percentValue = prevValue / 100;
+      const percentStr = this.addDotsIfNeeded(String(percentValue));
+      this.display = this.formatNumber(percentStr);
+      this.rawDisplay = percentStr;
+      this.formula = this.formatNumber(prevValue) + '÷100 =';
+      this.showFormula = true;
+      this.justCalculated = false; // 連打できないように
+      this.updateFormattedDisplays();
+      return;
+    }
+
     // 全角・半角両方の演算子を含める
     const operators = ['+', '-', '*', '/', '＋', '−', '×', '÷'];
     console.log('DEBUG appendValue start:', { value, justCalculated: this.justCalculated, display: this.display, rawDisplay: this.rawDisplay });
@@ -726,14 +740,16 @@ export class AppComponent implements AfterViewInit {
 
   // 小数部が8桁ちょうどなら...を付与
   addDotsIfNeeded(str: string): string {
-    return str.replace(/(\d+\.\d{8})(?!\d|\.\.\.)/g, '$1...');
+    // 小数点以下9桁以上のときだけ「...」を付ける
+    return str.replace(/(\d+\.\d{8})\d+/g, '$1...');
   }
 
   normalizeTrailingDots(expr: string): string {
-    return expr
-      // 末尾が `.` で終わる数字に `.0` を補う（例：9. → 9.0）
-      .replace(/(\d+)\.(?!\d)/g, '$1.0')
-      // `.` から始まる数字を `0.` に補正（例：+.5 → +0.5、*.3 → *0.3）
+    // ...が含まれていれば何もしない
+    if (expr.includes('...')) return expr;
+    // 末尾が「.」で終わる場合のみ「.0」を補う
+    return expr.replace(/(\d+)\.$/, '$1.0')
+      // `.` から始まる数字を `0.` に補正
       .replace(/(^|[+\-*/\(])\.([0-9])/g, '$10.$2');
   }
 
