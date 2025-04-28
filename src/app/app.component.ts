@@ -59,6 +59,11 @@ export class AppComponent implements AfterViewInit {
   private justPressedRoot = false;
   shouldShowDots = false;
 
+  constructor() {
+    this.display = '0';
+    this.rawDisplay = '0';
+    this.formula = '';
+  }
 
   //raw 加工前の式。戻り値は成形された式　string
   buildFormulaDisplay(raw: string): string {
@@ -761,16 +766,38 @@ export class AppComponent implements AfterViewInit {
       .replace(/(^|[+\-*/\(])\.([0-9])/g, '$10.$2');
   }
 
+  convertExponentialToDecimal(expStr: string): string {
+    const num = Number(expStr);
+    if (!Number.isFinite(num)) return 'エラー';
+
+    const sign = num < 0 ? '-' : '';
+    const [base, exp] = Math.abs(num).toExponential().split('e');
+    const exponent = parseInt(exp, 10);
+
+    let [intPart, decPart = ''] = base.split('.');
+    const digits = intPart + decPart;
+
+    if (exponent >= 0) {
+      // 小数点を右にずらす
+      const zeros = exponent - decPart.length;
+      return sign + digits + (zeros > 0 ? '0'.repeat(zeros) : '');
+    } else {
+      // 小数点を左にずらす（0.000000...）
+      const zeros = Math.abs(exponent) - 1;
+      return sign + '0.' + '0'.repeat(zeros) + digits;
+    }
+  }
+
 
 　//rawdisplay（入力内容）をもとに、画面の表示を更新し、フォントサイズも変更
   updateFormattedDisplays() {
     // 結果表示のフォントサイズを固定（自動リサイズなし）
     if (this.resultTextRef) {
-      const resultEl = this.resultTextRef.nativeElement;
-      resultEl.style.fontSize = '';
-      void resultEl.offsetWidth;
-        resultEl.style.fontSize = '32px'; // 固定サイズ
-      }
+      // const resultEl = this.resultTextRef.nativeElement;
+      // resultEl.style.fontSize = '';
+      // void resultEl.offsetWidth;
+      // resultEl.style.fontSize = '32px'; // 固定サイズ
+    }
 
     // もし display が空なら、次の入力を待つ状態として表示をクリア
     if (this.display === '') {
@@ -874,14 +901,19 @@ export class AppComponent implements AfterViewInit {
       if (intDigits > 10) {
         this.display = '11桁以上の計算結果';
         this.formula = '';
-        //this.formula = this.formatNumber(beforeOp) + opForFormula + this.formatNumber(lastNumber) + ' =';
         this.rawDisplay = '';
         this.isError = true;
         this.showFormula = true;
         this.updateFormattedDisplays();
         return;
       }
-      this.rawDisplay = this.addDotsIfNeeded(String(result));
+      // 小数部が8桁以上ならreturn
+      const resultStr = String(result);
+      const decimalMatch = resultStr.match(/\.(\d+)/);
+      if (decimalMatch && decimalMatch[1].length >= 8) {
+        return;
+      }
+      this.rawDisplay = this.addDotsIfNeeded(resultStr);
       this.display = this.formatNumber(this.rawDisplay);
       return;
     } else if (this.justCalculated && this.lastOperator && this.lastOperand) {
@@ -898,14 +930,19 @@ export class AppComponent implements AfterViewInit {
       if (intDigits > 10) {
         this.display = '11桁以上の計算結果';
         this.formula = '';
-        //this.formula = this.formatNumber(this.rawDisplay) + opForFormula + this.formatNumber(this.lastOperand) + ' =';
         this.rawDisplay = '';
         this.isError = true;
         this.showFormula = true;
         this.updateFormattedDisplays();
         return;
       }
-      this.rawDisplay = this.addDotsIfNeeded(String(result));
+      // 小数部が8桁以上ならreturn
+      const resultStr = String(result);
+      const decimalMatch = resultStr.match(/\.(\d+)/);
+      if (decimalMatch && decimalMatch[1].length >= 8) {
+        return;
+      }
+      this.rawDisplay = this.addDotsIfNeeded(resultStr);
       this.display = this.formatNumber(this.rawDisplay);
       return;
     } else {
@@ -1036,28 +1073,6 @@ export class AppComponent implements AfterViewInit {
     }
     return null;
   }
-  convertExponentialToDecimal(expStr: string): string {
-    const num = Number(expStr);
-    if (!Number.isFinite(num)) return 'エラー';
-
-    const sign = num < 0 ? '-' : '';
-    const [base, exp] = Math.abs(num).toExponential().split('e');
-    const exponent = parseInt(exp, 10);
-
-    let [intPart, decPart = ''] = base.split('.');
-    const digits = intPart + decPart;
-
-    if (exponent >= 0) {
-      // 小数点を右にずらす
-      const zeros = exponent - decPart.length;
-      return sign + digits + (zeros > 0 ? '0'.repeat(zeros) : '');
-    } else {
-      // 小数点を左にずらす（0.000000...）
-      const zeros = Math.abs(exponent) - 1;
-      return sign + '0.' + '0'.repeat(zeros) + digits;
-    }
-  }
-
 
   evaluateExpression(expression: string): string {
     console.log("🔍 evaluateExpression START:", expression);
@@ -1311,4 +1326,3 @@ export class AppComponent implements AfterViewInit {
     });
   }
 }
-

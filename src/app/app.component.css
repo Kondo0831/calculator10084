@@ -24,20 +24,37 @@
 
 .expression {
   font-size: 20px;
-  color: #888;
+  color: #48617a;
   text-align: right;
-  padding: 5px ;
-  margin-bottom: 25px;
+  padding: 5px 6px 8px 6px; /* 下に少し余白を追加 */
+  margin-bottom: 20px;
   height: 24px;
   line-height: 24px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-x: auto;    /* 横スクロールを有効に */
+  overflow-y: hidden;  /* 縦のスクロールを無効に */
+  white-space: nowrap; /* 改行を防止 */
+  
+  /* スクロールバーのカスタマイズ */
+  scrollbar-width: thin;        /* Firefox用、スクロールバーを細く */
+  scrollbar-color: #acd2de transparent; /* Firefox用、スクロールバーの色 */
+}
+
+.expression::-webkit-scrollbar {
+  width: 8px; /* スクロールバーの幅 */
+}
+
+.expression::-webkit-scrollbar-thumb {
+  background-color: #888; /* スクロールバーの色 */
+  border-radius: 10px;
+}
+
+.expression::-webkit-scrollbar-track {
+  background: transparent; /* スクロールトラックの背景 */
 }
 
 
 .result {
-  font-size: 34px;        /* 少し大きく */
+  font-size: 33px;        /* 少し大きく */
   font-weight: 600;
   text-align: right;
   padding: 4px 14px;      /* 上下にも少し余裕 */
