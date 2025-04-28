@@ -907,10 +907,10 @@ export class AppComponent implements AfterViewInit {
         this.updateFormattedDisplays();
         return;
       }
-      // 小数部が8桁以上ならreturn
+      // 小数部が9桁以上ならreturn
       const resultStr = String(result);
       const decimalMatch = resultStr.match(/\.(\d+)/);
-      if (decimalMatch && decimalMatch[1].length >= 8) {
+      if (decimalMatch && decimalMatch[1].length >= 9) {
         return;
       }
       this.rawDisplay = this.addDotsIfNeeded(resultStr);
@@ -936,10 +936,10 @@ export class AppComponent implements AfterViewInit {
         this.updateFormattedDisplays();
         return;
       }
-      // 小数部が8桁以上ならreturn
+      // 小数部が9桁以上ならreturn
       const resultStr = String(result);
       const decimalMatch = resultStr.match(/\.(\d+)/);
-      if (decimalMatch && decimalMatch[1].length >= 8) {
+      if (decimalMatch && decimalMatch[1].length >= 9) {
         return;
       }
       this.rawDisplay = this.addDotsIfNeeded(resultStr);
@@ -989,7 +989,7 @@ export class AppComponent implements AfterViewInit {
         throw new Error('無効な計算です');
       }
 
-      // 割り算の計算結果で小数部が8桁ちょうどのときだけ...を付与
+      // 割り算の計算結果で小数部が9桁ちょうどのときだけ...を付与
       let isDivision = false;
       if (typeof evalExpression === 'string' && evalExpression.includes('/')) {
         isDivision = true;

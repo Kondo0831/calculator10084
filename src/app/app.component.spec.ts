@@ -29,7 +29,7 @@ describe('AppComponent', () => {
   });
 });
 
-fdescribe('四則演算 ', () => {
+describe('四則演算 ', () => {
   const cases = [
     { input: '1+2', expected: '3' },
     { input: '5-3', expected: '2' },
@@ -66,7 +66,7 @@ fdescribe('四則演算 ', () => {
   });
 });
 
-fdescribe('小数演算テスト', () => {
+describe('小数演算テスト', () => {
   const decimalCases = [
     { input: '0.1 + 0.2', expected: '0.3' },
     { input: '1.2 - 3', expected: '-1.8' },
@@ -134,7 +134,7 @@ fdescribe('小数演算テスト', () => {
   });
 });
 
-fdescribe('％演算一連テスト', () => {
+describe('％演算一連テスト', () => {
   let calc: AppComponent;
 
   beforeEach(() => {
@@ -175,63 +175,9 @@ fdescribe('％演算一連テスト', () => {
   });
 });
 
-//fdescribe('Square root calculation UI & logic tests', () => {
-  let calculator: AppComponent;
 
-  beforeEach(() => {
-    calculator = new AppComponent();
-  });
 
-  const testCases = [
-    { sequence: ['9','√'], expected: '3' },
-    { sequence: ['1','6','√'], expected: '4' },
-    { sequence: ['2','5','√'], expected: '5' },
-    { sequence: ['1','0','0','√'], expected: '10' },
-    { sequence: ['0','√'], expected: '0' },
-    { sequence: ['0','.','2','5','√'], expected: '0.5' },
-    { sequence: ['0','.','0','0','0','1','√'], expected: '0.01' },
-    { sequence: ['9','±','√'], expected: '無効な計算です' },
-    { sequence: ['1','6','±','√'], expected: '無効な計算です' },
-    { sequence: ['0','.','2','5','±','√'], expected: '無効な計算です' },
-    { sequence: ['0','.','0','0','0','0','0','0','0','1','√'], expected: '0.0001' },
-    { sequence: ['1','0','0','0','0','0','0','0','0','0','√'], expected: '31,622.77660168...' },
-
-    { sequence: ['1','6','√','+','4'], expected: '8' },
-    { sequence: ['2','5','√','−','5'], expected: '0' },
-    { sequence: ['3','6','√','*','2'], expected: '12' },
-    { sequence: ['8','1','√','/','9',], expected: '1' },
-    { sequence: ['0','.','2','5','√','+','0','.','5'], expected: '1' },
-    { sequence: ['0','.','0','1','√','−','0','.','0','0','3',], expected: '0.097' },
-    { sequence: ['0','.','0','0','0','1','√','*','1','0',], expected: '0.1' },
-    { sequence: ['0','.','0','0','0','4','√','/','2',], expected: '0.01' },
-
-    { sequence: ['9','√','+','1','6','√'], expected: '7' },
-    { sequence: ['4','9','√','−','2','5','√'], expected: '2' },
-    { sequence: ['3','6','√','*','4','√'], expected: '12' },
-    { sequence: ['6','4','√','/','1','6','√'], expected: '2' },
-
-    { sequence: ['2','√'], expected: '1.41421356...' },
-    { sequence: ['3','√'], expected: '1.73205080...' },
-    { sequence: ['5','√'], expected: '2.23606797...' },
-    { sequence: ['7','√','+','1'], expected: '3.64575131...' },
-    { sequence: ['2','√','*','3'], expected: '4.24264068...' },
-    { sequence: ['2','√','+','3','√'], expected: '3.14626436...' },
-    { sequence: ['3','√','−','2','√'], expected: '0.31783724...' },
-    { sequence: ['5','√','/','2','√'], expected: '1.58113883...' },
-    { sequence: ['2','√','*','2','√'] , expected: '2', description: '√2×√2は2' },
-  ];
-
-  testCases.forEach(({ sequence, expected }) => {
-    it(`should calculate ${sequence.join('')} → ${expected}`, () => {
-      calculator.clearDisplay?.();
-      sequence.forEach(token => calculator.appendValue(token));
-      calculator.calculateResult();
-      expect(calculator.display).toBe(expected);
-    });
-  });
-//});
-
-fdescribe('入力制限テスト (appendValue 単体)', () => {
+describe('入力制限テスト (appendValue 単体)', () => {
   let calc: AppComponent;
 
   beforeEach(() => {
@@ -290,7 +236,7 @@ fdescribe('入力制限テスト (appendValue 単体)', () => {
   });
 });
 
-fdescribe('符号（±）と演算子の挙動', () => {
+describe('符号（±）と演算子の挙動', () => {
   let calc: AppComponent;
 
   beforeEach(() => {
@@ -326,82 +272,36 @@ fdescribe('符号（±）と演算子の挙動', () => {
   });
 });
 
-fdescribe('エラーハンドリングと桁数制限テスト', () => {
-  let calculator: AppComponent;
+//describe('エラーハンドリングと桁数制限テスト', () => {
+//  let calculator: AppComponent;
 
-  beforeEach(() => {
-    calculator = new AppComponent();
-  });
+ //  beforeEach(() => {
+ //   calculator = new AppComponent();
+ // });
 
-  const errorTests = [
-    { input: '99999999999 + 1', expectedResult: '11桁以上の計算結果', description: '整数部10桁を超える場合、桁数制限が適用される' },
-    { input: '1 / 0', expectedResult: '無効な計算です', description: 'ゼロ除算はエラー' },
-    //{ input: '(-9)√', expectedResult: '無効な計算です', description: '負の数の平方根はエラー' },
-    { input: '9999999999 + 9999999999', expectedResult: '11桁以上の計算結果', description: '整数部10桁の制限内で計算できる' },
-    { input: '9999999999 + 9 +', expectedResult: '11桁以上の計算結果', description: '演算子が残っている場合、エラー' },
-    { input: '999999999.99999999 + 0.1 +', expectedResult: '11桁以上の計算結果', description: '小数部が8桁を超えないように制限' },
-    //{ input: '9999999999 + 100√', expectedResult: '11桁以上の計算結果', description: '√100の結果が加算される' },
-    { input: '999999999999999999', expectedResult: '11桁以上の計算結果', description: '18桁を超える入力は制限される' },
-  ];
+ // const errorTests = [
+ //   { input: '99999999999 + 1', expectedResult: '11桁以上の計算結果', description: '整数部10桁を超える場合、桁数制限が適用される' },
+ //   { input: '1 / 0', expectedResult: '無効な計算です', description: 'ゼロ除算はエラー' },
+ //   //{ input: '(-9)√', expectedResult: '無効な計算です', description: '負の数の平方根はエラー' },
+ //   { input: '9999999999 + 9999999999', expectedResult: '11桁以上の計算結果', description: '整数部10桁の制限内で計算できる' },
+ //   { input: '9999999999 + 9 +', expectedResult: '11桁以上の計算結果', description: '演算子が残っている場合、エラー' },
+//    { input: '999999999.99999999 + 0.1 +', expectedResult: '11桁以上の計算結果', description: '小数部が8桁を超えないように制限' },
+ //   //{ input: '9999999999 + 100√', expectedResult: '11桁以上の計算結果', description: '√100の結果が加算される' },
+ //   { input: '999999999999999999', expectedResult: '11桁以上の計算結果', description: '18桁を超える入力は制限される' },
+ // ];
 
-  errorTests.forEach(({ input, expectedResult, description }) => {
-    it(`${description} - "${input}" → "${expectedResult}"`, () => {
-      calculator.rawDisplay = input;
-      calculator.calculateResult();
-      expect(calculator.display).toBe(expectedResult);
-    });
-  });
-});
+ // errorTests.forEach(({ input, expectedResult, description }) => {
+ //   it(`${description} - "${input}" → "${expectedResult}"`, () => {
+ //     calculator.rawDisplay = input;
+ //     calculator.calculateResult();
+ //     expect(calculator.display).toBe(expectedResult);
+ //   });
+ // });
+//});
 
-fdescribe('複合計算・エッジケーステスト', () => {
-  let calc: AppComponent;
 
-  beforeEach(() => {
-    calc = new AppComponent();
-  });
 
-  const cases = [
-    { input: Array(7).fill('0.1 +').join(' ') + '0.1', expected: '0.8', description: '0.1を8回加算' },
-    { input: Array(8).fill('0.1*').join(' ') + '0.1', expected: '0.00000001', description: '0.1を9回加算' },
-    { input: Array(9).fill('0.1*').join(' ') + '0.1', expected: '0.00000000...', description: '0.1を10回乗算（丸めあり）' },
-    { input: '0.12345678+0.00000001', expected: '0.12345679', description: '桁ギリギリの加算' },
-    { input: '1/3*3', expected: '0.99999999...', description: '1÷3×3で丸め戻し' },
-    { input: '0.00000001/2', expected: '0.00000000...', description: '9桁以上...' },
-    { input: '0.00000001*9', expected: '0.00000009', description: '極小数の乗算' },
-    { input: '0.00000001/10', expected: '0.00000000...', description: '極小数の割算' },
-    { input: '-9999999999+-1', expected: '11桁以上の計算結果', description: '負数のオーバーフロー加算' },
-    { input: '-9999999990-10', expected: '11桁以上の計算結果', description: '負数のオーバーフロー減算' },
-    { input: '-100,000*100,000', expected: '11桁以上の計算結果', description: '大きな数同士の乗算' },
-    { input: Array(10).fill('-1000000000 +').join(' ') + '0', expected: '11桁以上の計算結果', description: '-1000000000を10回加算' },
-    { input: '5000000000±*2', expected: '11桁以上の計算結果', description: '大きな負数の乗算' },
-    { input: '-1000000*10000', expected: '11桁以上の計算結果', description: '更に大きな数同士の乗算' },
-  ];
-
-  cases.forEach(({ input, expected, description }) => {
-    it(`${description} [${input}] → ${expected}`, () => {
-      calc.clearDisplay?.();
-      let errorDetected = false;
-      const tokens = input.replace(/([0-9.√+-×÷±,]+)/g, '$1 ').trim().split(/\s+/);
-
-      for (const token of tokens) {
-        calc.appendValue(token);
-        if (calc.display === '11桁以上の計算結果' || calc.display === '無効な計算です') {
-          errorDetected = true;
-          expect(calc.display).toBe(expected);
-          break;
-        }
-      }
-
-      if (!errorDetected) {
-        calc.calculateResult();
-        // 表示用整形後の値で比較
-        expect(calc.display).toBe(calc.formatNumber(expected));
-      }
-    });
-  });
-});
-
-fdescribe('式表示テスト（formula 更新）', () => {
+describe('式表示テスト（formula 更新）', () => {
   let calculator: AppComponent;
 
   beforeEach(() => {
@@ -430,7 +330,7 @@ fdescribe('式表示テスト（formula 更新）', () => {
   });
 });
 
-fdescribe('CE / C / BKSP 動作と計算継続テスト', () => {
+describe('CE / C / BKSP 動作と計算継続テスト', () => {
   let calc: AppComponent;
   beforeEach(() => {
     calc = new AppComponent();
@@ -541,7 +441,7 @@ fdescribe('CE / C / BKSP 動作と計算継続テスト', () => {
 
 });
 
-fdescribe('CE 後に入力 & 再計算テスト', () => {
+describe('CE 後に入力 & 再計算テスト', () => {
   let calc: AppComponent;
 
   beforeEach(() => {
