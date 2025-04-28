@@ -9,7 +9,7 @@
 
 .calculator {
   background: #e3f0fc; /* 淡い青 */
-  padding: 30px 20px 20px 20px;
+  padding: 30px 20px 10px 20px;
   width: 430px;
   max-width:90%;
   height: 590px;
@@ -23,11 +23,11 @@
 }
 
 .expression {
-  font-size: 17px;
+  font-size: 20px;
   color: #888;
   text-align: right;
-  padding: 5px 5px;
-  margin-bottom: 30px;
+  padding: 5px ;
+  margin-bottom: 25px;
   height: 24px;
   line-height: 24px;
   overflow: hidden;
@@ -37,7 +37,7 @@
 
 
 .result {
-  font-size: 33px;        /* 少し大きく */
+  font-size: 34px;        /* 少し大きく */
   font-weight: 600;
   text-align: right;
   padding: 4px 14px;      /* 上下にも少し余裕 */
