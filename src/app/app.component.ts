@@ -24,7 +24,6 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('resultText') resultTextRef!: ElementRef;
   @ViewChild('expressionText') expressionTextRef!: ElementRef
   @ViewChild('someElement') someElementRef!: ElementRef;
-  @ViewChild('calculator') calculatorRef!: ElementRef;
 
   private round8(value: number): number {
     return parseFloat(value.toFixed(8));
@@ -43,7 +42,7 @@ export class AppComponent implements AfterViewInit {
   isSignToggle = false;  // ±（符号切替）の状態を管理
   lastOperator: string | null = null;
   lastOperand: string | null = null;
-  isClear = true;
+  isClear = true; 
   hasCalculated = false;
   isNumberEntered = false;
   isAutoResizeEnabled = true;  // ← クラスに追加
@@ -63,23 +62,23 @@ export class AppComponent implements AfterViewInit {
   //raw 加工前の式。戻り値は成形された式　string
   buildFormulaDisplay(raw: string): string {
     // 式の見た目だけ調整（0-8 → -8 にする）←これどこで0-8している？
-    const simplified = raw.replace(/^0\-/, '-');
+    const simplified = raw.replace(/^0\-/, '-'); 
     //成形した文字列をさらにthisformatDisplay()に渡している
     //formatDisplayは数字の桁区切りや表示調整を行う
     return this.formatDisplay(simplified);
   }
-
+  
   // ==========================
   // 初期フォーカス制御
   // ==========================
   //これがあるとキーボード入力が使えるようになる
 
   ngAfterViewInit() {
-    // 電卓本体に初期フォーカス
-    this.calculatorRef.nativeElement.focus();
+    // 最初に画面ができたとき、フォーカスを強制的にどこかに当てる
+    document.body.focus(); // または this.renderer.selectRootElement('#main').focus();
   }
   focusBack(event: Event) {
-    this.calculatorRef.nativeElement.focus();
+    (event.currentTarget as HTMLElement).focus();
   }
 
 
@@ -89,7 +88,7 @@ export class AppComponent implements AfterViewInit {
   // ==========================
   @HostListener('window:keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent): void {
-    //押されたキーを取得
+     //押されたキーを取得
     const key = event.key;
     //キーをぼたんの値に変換//
     const buttonKey = this.mapKeyToButton(key);
@@ -97,13 +96,13 @@ export class AppComponent implements AfterViewInit {
     if (!buttonKey) return;
     //DeleteキーでCEの動作を行う
     if (key === 'Delete') {
-      this.clearEntry();
+      this.clearEntry(); 
       return;
     }
-
+  
     this.handleButtonAction(buttonKey); // それ以外は共通の処理を呼び出し
   }
-  //ボタンを押したときの処理
+ //ボタンを押したときの処理
   onButtonClick(value: string): void {
     this.handleButtonAction(value); // 共通の処理を呼び出し
   }
@@ -112,34 +111,34 @@ export class AppComponent implements AfterViewInit {
     if (key === 'CE') {
       if (this.justCalculated) {
         // 「＝」ボタンを押した後の「CE」→ 完全リセット
-        this.clearDisplay();
+        this.clearDisplay();  
       } else {
         // 通常の「CE」→ 現在の入力を削除
-        this.clearEntry();
+        this.clearEntry();  
       }
       return;
     }
-
+  
     if (key === 'C') {
       this.clearDisplay();  // 「C」ボタンで完全なリセット
       return;
     }
 
-
-
+    
+  
 
     this.isClear = false;  // 「C」や「CE」以外の場合の処理
     //ボタンを押したときのハイライト
-    this.highlightKey(key);
+    this.highlightKey(key); 
     //バイブレーション ←いる？
     if (navigator.vibrate) navigator.vibrate(10);
     //ボタンを押したときの処理
     const action = this.mapButtonToAction(key);
     action();
   }
-
-
-  //ボタンを押したときのハイライト（見た目）
+  
+  
+//ボタンを押したときのハイライト（見た目）
   highlightKey(key: string) {
     //押されたキーに対応する＜button＞要素を取得
     const btn = document.querySelector(`button[data-key="${key}"]`) as HTMLElement;
@@ -148,8 +147,8 @@ export class AppComponent implements AfterViewInit {
       btn.classList.add('pressed');
 
       setTimeout(() => {
-        btn.classList.remove('pressed');
-      }, 100);
+      btn.classList.remove('pressed');
+    }, 100);
     }
   }
 
@@ -181,7 +180,7 @@ export class AppComponent implements AfterViewInit {
       'C': () => this.clearDisplay(),
       'CE': () => this.clearEntry(), // CEボタンを追加
 
-
+      
     };
     // デフォルトは appendValue
     return actions[value] || (() => this.appendValue(value));
@@ -200,7 +199,7 @@ export class AppComponent implements AfterViewInit {
     // 計算直後やエラー時は全体クリア
     if (this.justCalculated || this.isError) {
       this.display = '0';
-      this.rawDisplay = '0';
+    this.rawDisplay = '0';
       this.formula = '';
       this.showFormula = false;
       this.justCalculated = false;
@@ -230,14 +229,14 @@ export class AppComponent implements AfterViewInit {
       this.display = this.display.slice(0, -1); //🐧
       // rawDisplayの末尾の数字も1文字削除
       this.rawDisplay = this.rawDisplay.replace(/(\d)(?!.*\d)/, ''); //🐧
-    } else {
+  } else {
       this.display = '0'; //🐧
       // rawDisplayの末尾の数字も削除
       this.rawDisplay = this.rawDisplay.replace(/(\d)(?!.*\d)/, ''); //🐧
-    }
-    this.updateFormattedDisplays();
+  }
+  this.updateFormattedDisplays();
   } //🐧
-
+   
 
 
 
@@ -252,7 +251,7 @@ export class AppComponent implements AfterViewInit {
     this.justCalculated = false; // 計算後のフラグもリセット
     this.isClear = false;  // クリアフラグをリセット
     this.resetHistory(); // 計算履歴をリセットするメソッド
-    this.updateFormattedDisplays();  // 表示更新
+  　this.updateFormattedDisplays();  // 表示更新
 
   }
 
@@ -302,20 +301,6 @@ export class AppComponent implements AfterViewInit {
 
 
   appendValue(value: string) {
-    // ＝の直後に％が押された場合は1/100する
-    if (value === '%' && this.justCalculated) {
-      const prevValue = parseFloat(this.rawDisplay.replace(/,/g, ''));
-      const percentValue = prevValue / 100;
-      const percentStr = this.addDotsIfNeeded(String(percentValue));
-      this.display = this.formatNumber(percentStr);
-      this.rawDisplay = percentStr;
-      this.formula = this.formatNumber(prevValue) + '÷100 =';
-      this.showFormula = true;
-      this.justCalculated = false; // 連打できないように
-      this.updateFormattedDisplays();
-      return;
-    }
-
     // 全角・半角両方の演算子を含める
     const operators = ['+', '-', '*', '/', '＋', '−', '×', '÷'];
     console.log('DEBUG appendValue start:', { value, justCalculated: this.justCalculated, display: this.display, rawDisplay: this.rawDisplay });
@@ -382,7 +367,7 @@ export class AppComponent implements AfterViewInit {
     // appendValue: classic calculator logic
     if (/^[0-9]$/.test(value)) {
       // justCalculated直後で直前が演算子でない場合はrawDisplayをリセット
-      if (this.justCalculated) {
+    if (this.justCalculated) {
         this.justCalculated = false;
         if (!operators.includes(this.rawDisplay.slice(-1))) {
           this.rawDisplay = '';
@@ -401,7 +386,7 @@ export class AppComponent implements AfterViewInit {
         if (/[+\-−*/×÷]$/.test(this.rawDisplay) || this.rawDisplay === '' || this.rawDisplay === '0') { //🐧
           // 末尾が演算子 or 空 or 0 → そのまま追加
           this.rawDisplay += value;
-        } else {
+    } else {
           // 末尾が数字 → その数字を消してから追加
           this.rawDisplay = this.rawDisplay.replace(/(\d+)(?!.*\d)/, '') + value; //🐧
         }
@@ -413,7 +398,7 @@ export class AppComponent implements AfterViewInit {
       let currentBlock = '';
       if (operators.includes(lastChar)) {
         currentBlock = '';
-      } else {
+    } else {
         const match = this.rawDisplay.match(/(?:^|[+\-*/×÷])(-?\d*\.?\d*)$/);
         currentBlock = match ? match[1] : '';
       }
@@ -428,7 +413,7 @@ export class AppComponent implements AfterViewInit {
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧
         this.rawDisplay += value;
-        this.updateFormattedDisplays();
+    this.updateFormattedDisplays();
         return;
       }
       // displayが「0.」や「12.」など小数点で終わっている場合はそのまま連結
@@ -448,8 +433,8 @@ export class AppComponent implements AfterViewInit {
       this.display = this.formatNumber(this.display.replace(/,/g, '') + value);
       this.rawDisplay += value;
       this.updateFormattedDisplays();
-      return;
-    }
+    return;
+  }
 
     if (operators.includes(value) || value === '√') {
       const lastChar = this.rawDisplay.slice(-1);
@@ -508,7 +493,7 @@ export class AppComponent implements AfterViewInit {
     
       const lastChar = raw.slice(-1);
       if (!/[0-9)\-]/.test(lastChar) && lastChar !== '%' && lastChar !== '√') {
-        return;
+    return;
       }
     }
 
@@ -539,7 +524,7 @@ export class AppComponent implements AfterViewInit {
       // rawDisplay と display を更新
       this.rawDisplay = before + replaceValue;
       this.display = this.formatNumber(replaceValue);
-      this.updateFormattedDisplays();
+  this.updateFormattedDisplays();
       this.isFromPercent = true; // ←★絶対に必要！！
       return;
     }
@@ -583,8 +568,8 @@ export class AppComponent implements AfterViewInit {
       }); //🐧
 
       this.updateFormattedDisplays();
-      return;
-    }
+     return;
+   }
 
     // ⑤ フォントサイズ調整再有効化
     this.isAutoResizeEnabled = true;
@@ -596,7 +581,7 @@ export class AppComponent implements AfterViewInit {
 
     // ⑦ justCalculated処理
     if (this.justCalculated) {
-      this.justCalculated = false;
+        this.justCalculated = false;
       this.formula = '';
       if (value === '.') {
         this.rawDisplay = '0.';  // 小数点処理
@@ -610,7 +595,7 @@ export class AppComponent implements AfterViewInit {
       }
     }
 
-    
+
 
     // ⑧ justCalculated直後に演算子が来た場合は続けて計算可能に
     if (this.justCalculated && operators.includes(value)) {
@@ -621,7 +606,7 @@ export class AppComponent implements AfterViewInit {
     if (this.rawDisplay === '0' && value !== '.' && !operators.includes(value)) {
       this.rawDisplay = '';
     }
-
+  
     if (value === '.') {
       const lastChar = this.rawDisplay.slice(-1);
       // 直前が演算子なら「0.」を追加
@@ -643,11 +628,11 @@ export class AppComponent implements AfterViewInit {
     // ⑪ 桁数制限（整数10、小数8、合計18桁）
     if (/^[0-9]$/.test(value)) {
       const match = this.rawDisplay.match(/(?:^|[+\−*/×÷])(-?\d*\.?\d*)$/);
-      const currentBlock = match ? match[1] : '';
-      const [intPart = '', decimalPart = ''] = currentBlock.split('.');
-      const isDecimal = currentBlock.includes('.');
-      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
-      const totalDigits = cleanInt.length + decimalPart.length;
+    const currentBlock = match ? match[1] : '';
+    const [intPart = '', decimalPart = ''] = currentBlock.split('.');
+    const isDecimal = currentBlock.includes('.');
+    const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
+    const totalDigits = cleanInt.length + decimalPart.length;
       if (!isDecimal && cleanInt.length >= 10) return; //🐧
       if (isDecimal && decimalPart.length >= 8) return; //🐧
       if (totalDigits >= 18) return; //🐧
@@ -687,8 +672,8 @@ export class AppComponent implements AfterViewInit {
       // 直前が演算子なら display を新しい数字で上書き
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧
-        this.rawDisplay += value;
-        this.updateFormattedDisplays();
+    this.rawDisplay += value;
+    this.updateFormattedDisplays();
         return;
       }
       // displayが「0.」や「12.」など小数点で終わっている場合はそのまま連結
@@ -732,7 +717,7 @@ export class AppComponent implements AfterViewInit {
       // ここで演算子を追加して続行
       this.rawDisplay += value;
       this.display = this.formatDisplay(this.rawDisplay);
-      this.updateFormattedDisplays();
+    this.updateFormattedDisplays();
       return;
     }
 
@@ -741,8 +726,7 @@ export class AppComponent implements AfterViewInit {
 
   // 小数部が8桁ちょうどなら...を付与
   addDotsIfNeeded(str: string): string {
-    // 小数点以下9桁以上のときだけ「...」を付ける
-    return str.replace(/(\d+\.\d{8})\d+/g, '$1...');
+    return str.replace(/(\d+\.\d{8})(?!\d|\.\.\.)/g, '$1...');
   }
 
   normalizeTrailingDots(expr: string): string {
@@ -755,15 +739,15 @@ export class AppComponent implements AfterViewInit {
   }
 
 
-  //rawdisplay（入力内容）をもとに、画面の表示を更新し、フォントサイズも変更
+　//rawdisplay（入力内容）をもとに、画面の表示を更新し、フォントサイズも変更
   updateFormattedDisplays() {
     // 結果表示のフォントサイズを固定（自動リサイズなし）
     if (this.resultTextRef) {
       const resultEl = this.resultTextRef.nativeElement;
       resultEl.style.fontSize = '';
       void resultEl.offsetWidth;
-      resultEl.style.fontSize = '32px'; // 固定サイズ
-    }
+        resultEl.style.fontSize = '32px'; // 固定サイズ
+      }
 
     // もし display が空なら、次の入力を待つ状態として表示をクリア
     if (this.display === '') {
@@ -773,7 +757,7 @@ export class AppComponent implements AfterViewInit {
 
 
 
-  //計算式を見やすい形に整える
+　//計算式を見やすい形に整える
   formatDisplay(value: string): string {
     if (value.includes('...')) {
       return value;
@@ -857,18 +841,18 @@ export class AppComponent implements AfterViewInit {
     let evalExpression = this.rawDisplay.replace(/\.{3,}/g, ''); // ...を除去して計算用に使う
     // 末尾が「.」で終わる数値を「.0」に補正
     evalExpression = this.normalizeTrailingDots(evalExpression);
-    if (operators.includes(lastChar)) {
+      if (operators.includes(lastChar)) {
       // 末尾が演算子のときは繰り返し計算
-      const beforeOp = this.rawDisplay.slice(0, -1);
+        const beforeOp = this.rawDisplay.slice(0, -1);
       const lastNumMatch = beforeOp.match(/(-?\d+(?:\.\d+)?)(?!.*\d)/);
       const lastNumber = lastNumMatch ? lastNumMatch[1] : '0';
       evalExpression = beforeOp + lastChar + lastNumber;
-      this.lastOperator = lastChar;
-      this.lastOperand = lastNumber;
+        this.lastOperator = lastChar;
+        this.lastOperand = lastNumber;
       // formula: 累積値＋繰り返し数＝（*→×、/→÷）
       let opForFormula = lastChar === '*' ? '×' : lastChar === '/' ? '÷' : lastChar;
       this.formula = this.formatNumber(beforeOp) + opForFormula + this.formatNumber(lastNumber) + ' =';
-      this.showFormula = true;
+        this.showFormula = true;
       this.justCalculated = true;
       const result = this.evaluateExpression(evalExpression);
       // 11桁超過チェック
@@ -930,7 +914,7 @@ export class AppComponent implements AfterViewInit {
         this.updateFormattedDisplays();
         return;
       }
-
+  
       const result = this.evaluateExpression(evalExpression);
       console.log('DEBUG evaluateExpression result:', result);
 
@@ -979,7 +963,7 @@ export class AppComponent implements AfterViewInit {
       // 小数部が9桁以上なら...で省略
       formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
       this.formula = formulaForDisplay + ' =';
-      this.showFormula = true;
+  this.showFormula = true;
       // ⭐⭐
 
     } catch (e) {
@@ -1123,7 +1107,7 @@ export class AppComponent implements AfterViewInit {
         if ('+-*/'.includes(current)) {
           currentOp = current;
           console.log("🔍 Current operator:", currentOp);
-        } else {
+  } else {
           console.log("🔍 Calculating:", {
             left: result,
             operator: currentOp,
@@ -1245,7 +1229,7 @@ export class AppComponent implements AfterViewInit {
       const fracB = this.stringToFraction(b);
       let result: Fraction;
 
-      switch (op) {
+    switch (op) {
         case '+':
           result = {
             numerator: fracA.numerator * fracB.denominator + fracB.numerator * fracA.denominator,
