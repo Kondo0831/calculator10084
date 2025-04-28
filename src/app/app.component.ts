@@ -24,6 +24,7 @@ export class AppComponent implements AfterViewInit {
   @ViewChild('resultText') resultTextRef!: ElementRef;
   @ViewChild('expressionText') expressionTextRef!: ElementRef
   @ViewChild('someElement') someElementRef!: ElementRef;
+  @ViewChild('calculator') calculatorRef!: ElementRef;
 
   private round8(value: number): number {
     return parseFloat(value.toFixed(8));
@@ -74,11 +75,11 @@ export class AppComponent implements AfterViewInit {
   //これがあるとキーボード入力が使えるようになる
 
   ngAfterViewInit() {
-    // 最初に画面ができたとき、フォーカスを強制的にどこかに当てる
-    document.body.focus(); // または this.renderer.selectRootElement('#main').focus();
+    // 電卓本体に初期フォーカス
+    this.calculatorRef.nativeElement.focus();
   }
   focusBack(event: Event) {
-    (event.currentTarget as HTMLElement).focus();
+    this.calculatorRef.nativeElement.focus();
   }
 
 
