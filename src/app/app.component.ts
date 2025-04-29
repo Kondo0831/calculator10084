@@ -505,9 +505,9 @@ export class AppComponent implements AfterViewInit {
       const isDecimal = currentBlock.includes('.');
       const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
       const totalDigits = cleanInt.length + decimalPart.length;
-      if (!isDecimal && cleanInt.length >= 10) return; //🐧
-      if (isDecimal && decimalPart.length >= 8) return; //🐧
-      if (totalDigits >= 18) return; //🐧
+      if (!isDecimal && cleanInt.length >= 10) return;
+      if (isDecimal && decimalPart.length >= 8) return;
+      if (totalDigits >= 18) return;
       // 直前が演算子なら display を新しい数字で上書き
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧
@@ -645,8 +645,15 @@ export class AppComponent implements AfterViewInit {
         return;
       }
       // すでに小数点が含まれている場合は無視
-      const currentBlock = this.rawDisplay.split(/[+\-*/×÷]/).pop() || '';
+      const currentBlock = this.rawDisplay.split(/[+\-−*/×÷]/).pop() || '';
       if (currentBlock.includes('.')) return;
+      // currentBlockが「0」なら「0.」に置き換え
+      if (currentBlock === '0') {
+        this.display = this.display.slice(0, -1) + '0.';
+        this.rawDisplay = this.rawDisplay.slice(0, -1) + '0.';
+        this.updateFormattedDisplays();
+        return;
+      }
       this.display += '.';
       this.rawDisplay += '.';
       this.updateFormattedDisplays();
@@ -656,14 +663,13 @@ export class AppComponent implements AfterViewInit {
     // ⑪ 桁数制限（整数10、小数8、合計18桁）
     if (/^[0-9]$/.test(value)) {
       const match = this.rawDisplay.match(/(?:^|[+\−*/×÷])(-?\d*\.?\d*)$/);
-    const currentBlock = match ? match[1] : '';
-    const [intPart = '', decimalPart = ''] = currentBlock.split('.');
-    const isDecimal = currentBlock.includes('.');
-    const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
-    const totalDigits = cleanInt.length + decimalPart.length;
-      if (!isDecimal && cleanInt.length >= 10) return; //🐧
-      if (isDecimal && decimalPart.length >= 8) return; //🐧
-      if (totalDigits >= 18) return; //🐧
+      const currentBlock = match ? match[1] : '';
+      const [intPart = '', decimalPart = ''] = currentBlock.split('.');
+      const isDecimal = currentBlock.includes('.');
+      const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
+      const totalDigits = cleanInt.length + decimalPart.length;
+      if (!isDecimal && cleanInt.length >= 10) return;
+      if (totalDigits >= 18) return;
     }
 
     if (operators.includes(value) || value === '√') {
@@ -694,9 +700,9 @@ export class AppComponent implements AfterViewInit {
       const isDecimal = currentBlock.includes('.');
       const cleanInt = intPart.replace(/^[-]?0+(?!$)/, '');
       const totalDigits = cleanInt.length + decimalPart.length;
-      if (!isDecimal && cleanInt.length >= 10) return; //🐧
-      if (isDecimal && decimalPart.length >= 8) return; //🐧
-      if (totalDigits >= 18) return; //🐧
+      if (!isDecimal && cleanInt.length >= 10) return;
+      if (isDecimal && decimalPart.length >= 8) return;
+      if (totalDigits >= 18) return;
       // 直前が演算子なら display を新しい数字で上書き
       if (operators.includes(lastChar)) {
         this.display = this.formatNumber(value); //🐧
@@ -856,107 +862,100 @@ export class AppComponent implements AfterViewInit {
   }
 
   calculateResult(): void {
-    console.log('DEBUG calculateResult START:', { rawDisplay: this.rawDisplay, display: this.display });
-    console.log('🔍 calculateResult START');
-    console.log('🔍 Initial state:', {
-      rawDisplay: this.rawDisplay,
-      display: this.display,
-      formula: this.formula
-    });
-
-    this.isResultDisplayed = true;
-
     if (
       (this.justCalculated && !this.lastOperator) ||
       this.display.includes('エラー') ||
       this.display === '無効な計算です' ||
       this.display === '11桁以上の計算結果'
     ) {
-      console.log('🔍 Early return due to invalid conditions');
       return;
     }
 
-    const formulaBeforeCalc = this.rawDisplay; //🐧 11桁超過用にも使う
+    const formulaBeforeCalc = this.rawDisplay;
     const operators = ['+', '−', '*', '/', '×', '÷'];
     const lastChar = this.rawDisplay.slice(-1);
-    let evalExpression = this.rawDisplay.replace(/\.{3,}/g, ''); // ...を除去して計算用に使う
-    // 末尾が「.」で終わる数値を「.0」に補正
+    let evalExpression = this.rawDisplay.replace(/\.{3,}/g, '');
     evalExpression = this.normalizeTrailingDots(evalExpression);
-      if (operators.includes(lastChar)) {
-      // 末尾が演算子のときは繰り返し計算
-        const beforeOp = this.rawDisplay.slice(0, -1);
+
+    if (operators.includes(lastChar)) {
+      const beforeOp = this.rawDisplay.slice(0, -1);
       const lastNumMatch = beforeOp.match(/(-?\d+(?:\.\d+)?)(?!.*\d)/);
       const lastNumber = lastNumMatch ? lastNumMatch[1] : '0';
       evalExpression = beforeOp + lastChar + lastNumber;
-        this.lastOperator = lastChar;
-        this.lastOperand = lastNumber;
-      // formula: 累積値＋繰り返し数＝（*→×、/→÷）
+      this.lastOperator = lastChar;
+      this.lastOperand = lastNumber;
       let opForFormula = lastChar === '*' ? '×' : lastChar === '/' ? '÷' : lastChar;
       this.formula = this.formatNumber(beforeOp) + opForFormula + this.formatNumber(lastNumber) + ' =';
-        this.showFormula = true;
+      this.showFormula = true;
       this.justCalculated = true;
-      const result = this.evaluateExpression(evalExpression);
-      // 11桁超過チェック
-      const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
-      if (intDigits > 10) {
-        this.display = '11桁以上の計算結果';
+
+      try {
+        const result = this.evaluateExpression(evalExpression);
+        // 11桁超過チェック
+        const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
+        if (intDigits > 10) {
+          this.display = '11桁以上の計算結果';
+          this.formula = '';
+          this.rawDisplay = '';
+          this.isError = true;
+          this.showFormula = true;
+          this.updateFormattedDisplays();
+          return;
+        }
+
+        this.rawDisplay = this.addDotsIfNeeded(String(result));
+        this.display = this.formatNumber(this.rawDisplay);
         this.formula = '';
-        this.rawDisplay = '';
+        this.showFormula = false;
+        return;
+      } catch (e) {
+        this.display = '無効な計算です';
         this.isError = true;
-        this.showFormula = true;
+        this.rawDisplay = '';
+        this.formula = '';
         this.updateFormattedDisplays();
         return;
       }
-      // 小数部が9桁以上ならreturn
-      const resultStr = String(result);
-      const decimalMatch = resultStr.match(/\.(\d+)/);
-      if (decimalMatch && decimalMatch[1].length >= 9) {
-        return;
-      }
-      this.rawDisplay = this.addDotsIfNeeded(resultStr);
-      this.display = this.formatNumber(this.rawDisplay);
-      return;
     } else if (this.justCalculated && this.lastOperator && this.lastOperand) {
-      // ＝連打時、直前の演算子・オペランドで繰り返し計算
       evalExpression = this.rawDisplay + this.lastOperator + this.lastOperand;
-      // formula: 累積値＋繰り返し数＝（*→×、/→÷）
       let opForFormula = this.lastOperator === '*' ? '×' : this.lastOperator === '/' ? '÷' : this.lastOperator;
       this.formula = this.formatNumber(this.rawDisplay) + opForFormula + this.formatNumber(this.lastOperand) + ' =';
       this.showFormula = true;
       this.justCalculated = true;
-      const result = this.evaluateExpression(evalExpression);
-      // 11桁超過チェック
-      const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
-      if (intDigits > 10) {
-        this.display = '11桁以上の計算結果';
+
+      try {
+        const result = this.evaluateExpression(evalExpression);
+        // 11桁超過チェック
+        const intDigits = String(result).split('.')[0].replace(/,/g, '').replace('-', '').length;
+        if (intDigits > 10) {
+          this.display = '11桁以上の計算結果';
+          this.formula = '';
+          this.rawDisplay = '';
+          this.isError = true;
+          this.showFormula = true;
+          this.updateFormattedDisplays();
+          return;
+        }
+
+        // 小数点以下8桁以上のチェック
+        const decimalMatch = String(result).match(/\.(\d+)/);
+        if (decimalMatch && decimalMatch[1].length >= 8) {
+          return;
+        }
+
+        this.rawDisplay = this.addDotsIfNeeded(String(result));
+        this.display = this.formatNumber(this.rawDisplay);
         this.formula = '';
-        this.rawDisplay = '';
+        this.showFormula = false;
+        return;
+      } catch (e) {
+        this.display = '無効な計算です';
         this.isError = true;
-        this.showFormula = true;
+        this.rawDisplay = '';
+        this.formula = '';
         this.updateFormattedDisplays();
         return;
       }
-      // 小数部が9桁以上ならreturn
-      const resultStr = String(result);
-      const decimalMatch = resultStr.match(/\.(\d+)/);
-      if (decimalMatch && decimalMatch[1].length >= 9) {
-        return;
-      }
-      this.rawDisplay = this.addDotsIfNeeded(resultStr);
-      this.display = this.formatNumber(this.rawDisplay);
-      return;
-    } else {
-      // 通常計算時はrawDisplay全体を整形してformulaにセット
-      let formulaForDisplay = this.rawDisplay.replace(/\*/g, '×').replace(/\//g, '÷');
-      if (!formulaForDisplay.includes('...')) {
-        formulaForDisplay = this.normalizeTrailingDots(formulaForDisplay);
-      }
-      formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
-      // すべての数値部分にカンマ区切りを適用
-      const formulaForDisplayWithComma = formulaForDisplay.replace(/-?\d+(\.\d+)?/g, (num) => this.formatNumber(num));
-      this.formula = formulaForDisplayWithComma + ' =';
-      this.showFormula = true;
-      this.justCalculated = true;
     }
 
     try {
@@ -1004,26 +1003,21 @@ export class AppComponent implements AfterViewInit {
       this.rawDisplay = resultStr;
       this.display = this.formatNumber(this.rawDisplay);
 
-      //🐧 直前の演算子・オペランドを保存
       const opMatch = this.rawDisplay.match(/([+\-*/])([^+\-*/]+)$/);
       if (opMatch) {
         this.lastOperator = opMatch[1];
         this.lastOperand = opMatch[2];
       }
-      //🐧
 
-      // ⭐⭐計算前の式を使ってformulaを作る！//⭐⭐⭐さらに、＊を×にする
       let formulaForDisplay = formulaBeforeCalc.replace(/\*/g, '×').replace(/\//g, '÷');
       formulaForDisplay = this.normalizeTrailingDots(formulaForDisplay);
-      // 小数部が9桁以上なら...で省略
       formulaForDisplay = formulaForDisplay.replace(/(\d+\.\d{8})\d+/g, '$1...');
     
-      // 🔥ここでカンマ区切りを適用
-　　　　const formulaForDisplayWithComma = formulaForDisplay.replace(/-?\d+(\.\d+)?/g, (num) => this.formatNumber(num));
+      const formulaForDisplayWithComma = formulaForDisplay.replace(/-?\d+(\.\d+)?/g, (num) => this.formatNumber(num));
 
       this.formula = formulaForDisplayWithComma + ' =';
-  this.showFormula = true;
-      // ⭐⭐
+      this.showFormula = false;
+      this.justCalculated = true;
 
     } catch (e) {
       console.error('🔍 Error during calculation:', e);
@@ -1034,9 +1028,7 @@ export class AppComponent implements AfterViewInit {
       this.updateFormattedDisplays();
     }
 
-    console.log('DEBUG calculateResult END:', { rawDisplay: this.rawDisplay, display: this.display });
     this.updateFormattedDisplays();
-
     this.shouldShowDots = this.rawDisplay.includes('...') || (typeof this.formula === 'string' && this.formula.includes('...'));
   }
 
@@ -1152,7 +1144,7 @@ export class AppComponent implements AfterViewInit {
           });
 
           // 数値の妥当性チェック（小数を含む、「...」付きも許容）
-          const numberPattern = /^-?\d*\.?\d+(?:\.\.\.)?$/;
+          const numberPattern = /^-?(?:\d+|\d*\.\d+)(?:\.\.\.)?$/;
           if (!numberPattern.test(result) || !numberPattern.test(current)) {
             console.error("🔍 Invalid number format:", { result, current });
             throw new Error('Invalid number format');

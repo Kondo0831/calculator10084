@@ -1,3 +1,8 @@
+
+.calculator {
+  caret-color: transparent;
+  user-select: none;
+}
 .calculator-wrapper {
   transform: scale(0.75);             /* 縮小率：80% */
   transform-origin: top left;        /* 左上基準で縮小 */

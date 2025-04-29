@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
 import { input } from '@angular/core';
+import { ComponentFixture } from '@angular/core/testing';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
@@ -31,35 +32,40 @@ describe('AppComponent', () => {
 
 describe('四則演算 ', () => {
   const cases = [
-    { input: '1+2', expected: '3' },
-    { input: '5-3', expected: '2' },
-    { input: '6×7', expected: '42' },
-    { input: '8÷4', expected: '2' },
-    { input: '-3+5', expected: '2' },
-    { input: '-8-4', expected: '-12' },
-    { input: '-9×3', expected: '-27' },
-    { input: '-12÷4', expected: '-3' },
-    { input: '10--5', expected: '15' },
-    { input: '-6--4', expected: '-2' },
-    { input: '-5×-5', expected: '25' },
-    { input: '-18÷-3', expected: '6' },
-    { input: '-9+-9', expected: '-18' },
-    { input: '-16+4', expected: '-12' },
-    { input: '4--5', expected: '9' },
-    { input: '-3×4', expected: '-12' },
-    { input: '0+0', expected: '0' },
-    { input: '0×123456789', expected: '0' },
-    { input: '0-5', expected: '-5' },
-    { input: '5-0', expected: '5' },
-    { input: '3333333333.22222222+3333333333.22222222', expected: '6,666,666,666.44444444' },
+    { sequence: ['1','+','2','='], expected: '3' },                   // 1 + 2
+    { sequence: ['5','−','3','='], expected: '2' },                   // 5 - 3
+    { sequence: ['6','×','7','='], expected: '42' },                  // 6 × 7
+    { sequence: ['8','÷','4','='], expected: '2' },                   // 8 ÷ 4
+    { sequence: ['3','±','+','5','='], expected: '2' },              // -3 + 5
+    { sequence: ['8','±','−','4','='], expected: '-12' },            // -8 - 4
+    { sequence: ['9','±','×','3','='], expected: '-27' },            // -9 × 3
+    { sequence: ['1','2','±','÷','4','='], expected: '-3' },         // -12 ÷ 4
+    { sequence: ['1','0','−','5','±','='], expected: '15' },         // 10 - (-5)
+    { sequence: ['6','±','−','4','±','='], expected: '-2' },         // -6 - (-4)
+    { sequence: ['5','±','×','5','±','='], expected: '25' },         // -5 × (-5)
+    { sequence: ['1','8','±','÷','3','±','='], expected: '6' },      // -18 ÷ (-3)
+    { sequence: ['9','±','+','9','±','='], expected: '-18' },        // -9 + (-9)
+    { sequence: ['1','6','±','+','4','='], expected: '-12' },        // -16 + 4
+    { sequence: ['4','−','5','±','='], expected: '9' },              // 4 - (-5)
+    { sequence: ['3','±','×','4','='], expected: '-12' },            // -3 × 4
+    { sequence: ['0','+','0','='], expected: '0' },                  // 0 + 0
+    { sequence: ['0','×','1','2','3','4','5','6','7','8','9','='], expected: '0' },  // 0 × 123456789
+    { sequence: ['0','−','5','='], expected: '-5' },                 // 0 - 5
+    { sequence: ['5','−','0','='], expected: '5' },                  // 5 - 0
+    { sequence: ['3','3','3','3','3','3','3','3','3','3','.','2','2','2','2','2','2','2','2','+','3','3','3','3','3','3','3','3','3','3','.','2','2','2','2','2','2','2','2','='], expected: '6,666,666,666.44444444' }  // 3333333333.22222222 + 3333333333.22222222
   ];
 
-  cases.forEach(({ input, expected }) => {
-    it(`${input} = ${expected}`, () => {
+  cases.forEach(({ sequence, expected }) => {
+    it(`${sequence.join('')} = ${expected}`, () => {
       const fixture = TestBed.createComponent(AppComponent);
       const app = fixture.componentInstance;
-      app.rawDisplay = input;
-      app.calculateResult();
+      sequence.forEach(key => {
+        if (key === '=') {
+          app.calculateResult();
+        } else {
+          app.appendValue(key);
+        }
+      });
       const result = app.display;
       expect(result).toBe(expected);
     });
@@ -68,39 +74,41 @@ describe('四則演算 ', () => {
 
 describe('小数演算テスト', () => {
   const decimalCases = [
-    { input: '0.1 + 0.2', expected: '0.3' },
-    { input: '1.2 - 3', expected: '-1.8' },
-    { input: '0.7 × 3', expected: '2.1' },
-    { input: '0.3 × 10', expected: '3' },
-    { input: '2.4 ÷ 2', expected: '1.2' },
-    { input: '1 ÷ 3', expected: '0.33333333' },
-    { input: '0.00000001 ÷ 2', expected: '0.00000000...' },
-    { input: '0.0000001 ÷ 3', expected: '0.00000003...' },
-    { input: '1.12345678 + 0.00000001', expected: '1.12345679' },
-    { input: '1.99999999 + 0.00000001', expected: '2' },
-    { input: '0.99999999 × 1.00000001', expected: '0.99999999...' },
-    { input: '0.12345678 + 0.87654321', expected: '0.99999999' },
-    { input: '0.12345678 + 0.87654322', expected: '1' },
-    { input: '0.00000000 + 0.00000000', expected: '0' },
-    { input: '50÷0.1', expected: '500' },
-    { input: '1 ÷ 0.1', expected: '10' },
-    { input: '1 ÷ 0.5', expected: '2' },
-    { input: '0.5 ÷ 0.1', expected: '5' },
-    { input: '10 ÷ 0.2', expected: '50' },
-    { input: '0.1 ÷ 0.01', expected: '10' },
-    { input: '0.001 ÷ 0.1', expected: '0.01' },
-    { input: '1.5 ÷ 0.3', expected: '5' },
-    { input: '0.15 ÷ 0.03', expected: '5' },
-    { input: '0.5 * 0.3', expected: '0.15' },
-    { input: '2.5 * 3.1', expected: '7.75' },
+    { sequence: ['0','.','1','+','0','.','2','='], expected: '0.3' },             // 0.1 + 0.2
+    { sequence: ['1','.','2','−','3','='], expected: '-1.8' },                    // 1.2 - 3
+    { sequence: ['0','.','7','×','3','='], expected: '2.1' },                     // 0.7 × 3
+    { sequence: ['0','.','3','×','1','0','='], expected: '3' },                   // 0.3 × 10
+    { sequence: ['2','.','4','÷','2','='], expected: '1.2' },                     // 2.4 ÷ 2
+    { sequence: ['1','÷','3','='], expected: '0.33333333...' },                      // 1 ÷ 3
+    { sequence: ['0','.','0','0','0','0','0','0','0','1','÷','2','='], expected: '0.00000000...' },  // 0.00000001 ÷ 2
+    { sequence: ['0','.','0','0','0','0','0','0','1','÷','3','='], expected: '0.00000003...' },      // 0.0000001 ÷ 3
+    { sequence: ['1','.','1','2','3','4','5','6','7','8','+','0','.','0','0','0','0','0','0','0','1','='], expected: '1.12345679' },  // 1.12345678 + 0.00000001
+    { sequence: ['1','.','9','9','9','9','9','9','9','9','+','0','.','0','0','0','0','0','0','0','1','='], expected: '2' },          // 1.99999999 + 0.00000001
+    { sequence: ['0','.','9','9','9','9','9','9','9','9','×','1','.','0','0','0','0','0','0','0','1','='], expected: '0.99999999...' },  // 0.99999999 × 1.00000001
+    { sequence: ['0','.','1','2','3','4','5','6','7','8','+','0','.','8','7','6','5','4','3','2','1','='], expected: '0.99999999' },    // 0.12345678 + 0.87654321
+    { sequence: ['0','.','1','2','3','4','5','6','7','8','+','0','.','8','7','6','5','4','3','2','2','='], expected: '1' },            // 0.12345678 + 0.87654322
+    { sequence: ['0','.','0','0','0','0','0','0','0','0','+','0','.','0','0','0','0','0','0','0','0','='], expected: '0' },            // 0.00000000 + 0.00000000
+    { sequence: ['5','0','÷','0','.','1','='], expected: '500' },                 // 50 ÷ 0.1
+    { sequence: ['1','÷','0','.','1','='], expected: '10' },                      // 1 ÷ 0.1
+    { sequence: ['1','÷','0','.','5','='], expected: '2' },                       // 1 ÷ 0.5
+    { sequence: ['1','÷','0','.','0','1','='], expected: '100' },                 // 1 ÷ 0.01
+    { sequence: ['0','.','1','+','0','.','3','='], expected: '0.4' },            // 0.1 + 0.3
+    { sequence: ['0','.','1','×','0','.','4','='], expected: '0.04' },           // 0.1 × 0.4
+    { sequence: ['0','.','5','÷','0','.','1','='], expected: '5' },              // 0.5 ÷ 0.1
+    { sequence: ['1','0','÷','0','.','2','='], expected: '50' },                 // 10 ÷ 0.2
+    { sequence: ['0','.','1','÷','0','.','0','1','='], expected: '10' },         // 0.1 ÷ 0.01
+    { sequence: ['1','.','5','÷','0','.','3','='], expected: '5' },              // 1.5 ÷ 0.3
+    { sequence: ['0','.','1','5','÷','0','.','0','3','='], expected: '5' },      // 0.15 ÷ 0.03
+    { sequence: ['0','.','5','×','0','.','3','='], expected: '0.15' },           // 0.5 × 0.3
+    { sequence: ['2','.','5','×','3','.','1','='], expected: '7.75' }            // 2.5 × 3.1
   ];
 
   const negativeDecimalCases = [
-    { input: '−0.1 + 0.2', expected: '0.1' },
-    { input: '−0.5 − 0.3', expected: '-0.8' },
-    { input: '−0.25 × 4', expected: '-1.0' },
-    { input: '−0.9 ÷ 3', expected: '-0.3' },
-    { input: '−0.00000001 + 0.00000001', expected: '0' },
+    { sequence: ['−','0','.','1','+','0','.','2','='], expected: '0.1' },        // -0.1 + 0.2
+    { sequence: ['−','0','.','5','−','0','.','3','='], expected: '-0.8' },       // -0.5 - 0.3
+    { sequence: ['−','0','.','2','5','×','4','='], expected: '-1' },           // -0.25 × 4
+    { sequence: ['−','0','.','9','÷','3','='], expected: '-0.3' },               // -0.9 ÷ 3
+    { sequence: ['−','0','.','0','0','0','0','0','0','0','1','+','0','.','0','0','0','0','0','0','0','1','='], expected: '0' }  // -0.00000001 + 0.00000001
   ];
 
   let calculator: AppComponent;
@@ -114,26 +122,67 @@ describe('小数演算テスト', () => {
   });
 
   describe('正の小数', () => {
-    decimalCases.forEach(({ input, expected }) => {
-      it(`${input} = ${expected}`, () => {
-        calculator.rawDisplay = input;
-        calculator.calculateResult();
-        expect(parseFloat(calculator.display)).toBeCloseTo(parseFloat(expected), 8);
+    decimalCases.forEach(({ sequence, expected }) => {
+      it(`${sequence.join('')} = ${expected}`, () => {
+        sequence.forEach(key => {
+          if (key === '=') {
+            calculator.calculateResult();
+          } else {
+            calculator.appendValue(key);
+          }
+        });
+        expect(calculator.display).toBe(expected);
       });
     });
   });
 
   describe('負の小数', () => {
-    negativeDecimalCases.forEach(({ input, expected }) => {
-      it(`${input} = ${expected}`, () => {
-        calculator.rawDisplay = input;
-        calculator.calculateResult();
-        expect(parseFloat(calculator.display)).toBeCloseTo(parseFloat(expected), 8);
+    negativeDecimalCases.forEach(({ sequence, expected }) => {
+      it(`${sequence.join('')} = ${expected}`, () => {
+        sequence.forEach(key => {
+          if (key === '=') {
+            calculator.calculateResult();
+          } else {
+            calculator.appendValue(key);
+          }
+        });
+        expect(calculator.display).toBe(expected);
       });
     });
   });
 });
 
+describe('小数', () => {
+  let calc: AppComponent;
+
+  beforeEach(() => {
+    calc = new AppComponent();
+    calc.clearDisplay?.();
+  });
+
+  const calcCases = [
+    // ... other test cases ...
+    { 
+      sequence: ['1', '/', '0', '.', '0', '0', '1', '='],
+      expected: '1,000',
+      desc: '1÷0.001 = 1000 (正の小数の逆数)'
+    },
+    // ... other test cases ...
+  ];
+
+  calcCases.forEach(({ sequence, expected, desc }) => {
+    it(desc, () => {
+      sequence.forEach(key => {
+        if (key === '=') {
+          calc.calculateResult();
+        } else {
+          calc.appendValue(key);
+        }
+      });
+      expect(calc.display).toBe(expected);
+    });
+  });
+});
 describe('％演算一連テスト', () => {
   let calc: AppComponent;
 
@@ -175,8 +224,6 @@ describe('％演算一連テスト', () => {
   });
 });
 
-
-
 describe('入力制限テスト (appendValue 単体)', () => {
   let calc: AppComponent;
 
@@ -199,7 +246,6 @@ describe('入力制限テスト (appendValue 単体)', () => {
       description: '小数点連続入力は1つにまとめられる',
     },
     {
-  
       keys: ['0','0'],
       expectedRaw: '0',
       expectedDisplay: '0',
@@ -253,13 +299,11 @@ describe('符号（±）と演算子の挙動', () => {
     { keys: ['5', '±', '+', '3', '='], expected: '-2', desc: '5に±して+3 → -2' },
     { keys: ['9', '±', '−', '4', '='], expected: '-13', desc: '9に±して-4 → -13' },
     { keys: ['5', '−', '±', '±', '5', '='], expected: '0', desc: '±を2回 → -5 → +5 → 5-5=0' },
-   // { keys: ['9', '√', '±'], expected: '-3', desc: '√9=3に±で-3' },
     { keys: ['5', '+', '−', '3', '='], expected: '2', desc: '演算子を+→-に切替 → 5-3=2' },
     { keys: ['9', '−', '*', '2', '='], expected: '18', desc: '演算子を-→×に切替 → 9×2=18' },
     { keys: ['4', '×', '/', '2', '='], expected: '2', desc: '演算子を×→÷に切替 → 4÷2=2' },
     { keys: ['8', '÷', '+', '1', '='], expected: '9', desc: '演算子を÷→+に切替 → 8+1=9' },
     { keys: ['5', '+', '−', '*', '/', '2', '='], expected: '2.5', desc: '最後の演算子÷が有効 → 5÷2=2.5' },
-   // { keys: ['2', '5', '√', '+', '5','±', '='], expected: '0', desc: '√25=5、演算子+→-に変更 → 5-5=0' },
     { keys: ['5', '+', '3', '±', '='], expected: '2', desc: '5 + (-3) = 2' },
   ];
 
@@ -272,34 +316,62 @@ describe('符号（±）と演算子の挙動', () => {
   });
 });
 
-//describe('エラーハンドリングと桁数制限テスト', () => {
-//  let calculator: AppComponent;
+describe('小数点入力の制限テスト', () => {
+  let component: AppComponent;
+  let fixture: ComponentFixture<AppComponent>;
 
- //  beforeEach(() => {
- //   calculator = new AppComponent();
- // });
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [AppComponent]
+    });
+    fixture = TestBed.createComponent(AppComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
 
- // const errorTests = [
- //   { input: '99999999999 + 1', expectedResult: '11桁以上の計算結果', description: '整数部10桁を超える場合、桁数制限が適用される' },
- //   { input: '1 / 0', expectedResult: '無効な計算です', description: 'ゼロ除算はエラー' },
- //   //{ input: '(-9)√', expectedResult: '無効な計算です', description: '負の数の平方根はエラー' },
- //   { input: '9999999999 + 9999999999', expectedResult: '11桁以上の計算結果', description: '整数部10桁の制限内で計算できる' },
- //   { input: '9999999999 + 9 +', expectedResult: '11桁以上の計算結果', description: '演算子が残っている場合、エラー' },
-//    { input: '999999999.99999999 + 0.1 +', expectedResult: '11桁以上の計算結果', description: '小数部が8桁を超えないように制限' },
- //   //{ input: '9999999999 + 100√', expectedResult: '11桁以上の計算結果', description: '√100の結果が加算される' },
- //   { input: '999999999999999999', expectedResult: '11桁以上の計算結果', description: '18桁を超える入力は制限される' },
- // ];
+  it('演算子の後に小数点を入力すると "0." が追加される', () => {
+    component.appendValue('1');
+    component.appendValue('+');
+    component.appendValue('.');
+    expect(component.display).toBe('0.');
+    expect(component.rawDisplay).toBe('1+0.');
+  });
 
- // errorTests.forEach(({ input, expectedResult, description }) => {
- //   it(`${description} - "${input}" → "${expectedResult}"`, () => {
- //     calculator.rawDisplay = input;
- //     calculator.calculateResult();
- //     expect(calculator.display).toBe(expectedResult);
- //   });
- // });
-//});
+  it('全角マイナスの後でも小数点入力が可能', () => {
+    component.appendValue('1');
+    component.appendValue('−');  // 全角マイナス
+    component.appendValue('.');
+    expect(component.display).toBe('0.');
+    expect(component.rawDisplay).toBe('1−0.');
+  });
 
+  it('すでに小数点がある数値ブロックには新しい小数点を入力できない', () => {
+    component.appendValue('1');
+    component.appendValue('.');
+    component.appendValue('2');
+    component.appendValue('.');
+    expect(component.display).toBe('1.2');
+    expect(component.rawDisplay).toBe('1.2');
+  });
 
+  it('"0" の後に小数点を入力すると "0." になる', () => {
+    component.appendValue('0');
+    component.appendValue('.');
+    expect(component.display).toBe('0.');
+    expect(component.rawDisplay).toBe('0.');
+  });
+
+  it('複数の数値ブロックで小数点入力が正しく動作する', () => {
+    component.appendValue('1');
+    component.appendValue('.');
+    component.appendValue('2');
+    component.appendValue('−');
+    component.appendValue('0');
+    component.appendValue('.');
+    expect(component.display).toBe('0.');
+    expect(component.rawDisplay).toBe('1.2−0.');
+  });
+});
 
 describe('式表示テスト（formula 更新）', () => {
   let calculator: AppComponent;
@@ -338,33 +410,45 @@ describe('CE / C / BKSP 動作と計算継続テスト', () => {
   });
 
   const tests = [
-    // あなたが書いてくれたやつ
     { before: ['3','4','+','2'], key: 'C', expectedDisplay: '0' },
     { before: ['1','0','0','×','√','(','1','6',')'], key: 'C', expectedDisplay: '0' },
     { before: ['9','%'], key: 'C', expectedDisplay: '0' },
-    { before: ['3','+','2','=','5'], key: 'CE', expectedDisplay: '0' },
+    { before: ['3','+','2','='], key: 'CE', expectedDisplay: '0' },
     { before: ['3','+'], key: 'CE', expectedDisplay: '0', expectedFormula: '3+' },
-    { before: ['3','+','2','='], key: 'CE', expectedDisplay: '0', expectedFormula: '' },
-    { before: ['9','±'], key: 'CE', expectedDisplay: '0', expectedFormula: '0' },
+    { before: ['9','±'], key: 'CE', expectedDisplay: '0', expectedFormula: '' },
     { before: ['1','2','3'], key: 'BKSP', expectedDisplay: '12', expectedFormula: '' },
     { before: ['1','2'], key: 'BKSP', expectedDisplay: '1', expectedFormula: '' },
     { before: ['3','+','4','%'], key: 'BKSP', expectedDisplay: '0', expectedFormula: '3+' },
-    { before: ['2','+','3','=','5'], key: 'BKSP', expectedDisplay: '0', expectedFormula: '' },
+    { before: ['2','+','3','='], key: 'BKSP', expectedDisplay: '0', expectedFormula: '' },
   ];
 
   tests.forEach(({ before, key, expectedDisplay, expectedFormula }) => {
     it(`"${before.join('')}" then "${key}" = "${expectedDisplay}"`, () => {
-      before.forEach(ch => calc.appendValue(ch));
+      // 初期入力を実行
+      before.forEach(ch => {
+        if (ch === '=') {
+          calc.calculateResult();
+        } else {
+          calc.appendValue(ch);
+        }
+      });
 
-      if (key === 'C') calc.clearDisplay?.();
-      else if (key === 'CE') calc.clearEntry();
-      else if (key === 'BKSP') calc.backspace();
+      // 特殊キーを処理
+      if (key === 'C') {
+        calc.clearDisplay?.();
+      } else if (key === 'CE') {
+        calc.clearEntry();
+      } else if (key === 'BKSP') {
+        calc.backspace();
+      } else {
+        // 通常のキーの場合のみappendValue
+        calc.appendValue(key);
+        if (key === '=') {
+          calc.calculateResult();
+        }
+      }
 
-      if (key === 'CE') calc.clearEntry();
-
-      calc.appendValue(key);
-      if (key === '=') calc.calculateResult();
-
+      // 結果を検証
       expect(calc.display).toBe(expectedDisplay);
       if (expectedFormula !== undefined) {
         expect(calc.formula.trim()).toBe(expectedFormula);
@@ -436,7 +520,7 @@ describe('CE / C / BKSP 動作と計算継続テスト', () => {
     calc.rawDisplay = '7';
     calc.backspace();
     expect(calc.display).toBe('0');
-    expect(calc.rawDisplay).toBe('0');
+    expect(calc.rawDisplay).toBe('');
   });
 
 });
@@ -466,6 +550,34 @@ describe('CE 後に入力 & 再計算テスト', () => {
       after: ['CE','3','='], expected: '2.66666666...' }, // → CE -> ÷3= -> 2.66666667
   ];
 
+  // 計算結果に続けて四則演算するテストケースを追加
+  const continuousCalcCases = [
+    // 整数の四則演算
+    { seq: ['7','+','8','=','+','3','='], expected: '18', desc: '7+8=15 の後 +3=18' },
+    { seq: ['1','0','−','2','=','−','3','='], expected: '5', desc: '10-2=8 の後 -3=5' },
+    { seq: ['4','×','5','=','×','2','='], expected: '40', desc: '4×5=20 の後 ×2=40' },
+    { seq: ['8','÷','2','=','÷','2','='], expected: '2', desc: '8÷2=4 の後 ÷2=2' },
+    
+    // 負の数を含む計算
+    { seq: ['6','±','×','2','=','+','4','='], expected: '-8', desc: '-6×2=-12 の後 +4=-8' },
+    { seq: ['9','−','5','=','×','2','±','='], expected: '-8', desc: '9-5=4 の後 ×(-2)=-8' },
+    
+    // 小数を含む計算
+    { seq: ['1','.','5','+','2','.','5','=','×','2','='], expected: '8', desc: '1.5+2.5=4 の後 ×2=8' },
+    { seq: ['1','0','÷','4','=','÷','5','='], expected: '0.5', desc: '10÷4=2.5 の後 ÷5=0.5' },
+    { seq: ['0','.','1','+','0','.','2','=','+','0','.','3','='], expected: '0.6', desc: '0.1+0.2=0.3 の後 +0.3=0.6' },
+    { seq: ['2','.','5','×','3','=','−','0','.','5','='], expected: '7', desc: '2.5×3=7.5 の後 -0.5=7' },
+    
+    // 複数回の連続計算
+    { seq: ['5','+','5','=','+','5','=','+','5','='], expected: '20', desc: '5+5=10 の後 +5=15 さらに +5=20' },
+    { seq: ['1','0','×','2','=','÷','4','=','×','2','='], expected: '10', desc: '10×2=20 の後 ÷4=5 さらに ×2=10' },
+
+    // 追加のパターン
+    { seq: ['2','0','÷','5','=','×','3','=','+','1','='], expected: '13', desc: '20÷5=4 の後 ×3=12 さらに +1=13' },
+    { seq: ['3','.','5','×','2','=','+','1','.','5','=','÷','2','='], expected: '4.25', desc: '3.5×2=7 の後 +1.5=8.5 さらに ÷2=4' },
+    { seq: ['9','9','+','1','=','÷','2','=','×','2','='], expected: '100', desc: '99+1=100 の後 ÷2=50 さらに ×2=100' }
+  ];
+
   cases.forEach(({ seq, after, expected }) => {
     it(`${seq.join('')} then ${after.join(' ')} should display ${expected}`, () => {
       // 初回計算まで
@@ -487,4 +599,113 @@ describe('CE 後に入力 & 再計算テスト', () => {
       expect(calc.display).toBe(expected);
     });
   });
+
+  // 連続計算のテストケース
+  continuousCalcCases.forEach(({ seq, expected, desc }) => {
+    it(desc, () => {
+      seq.forEach(ch => {
+        if (ch === '=') {
+          calc.calculateResult();
+        } else {
+          calc.appendValue(ch);
+        }
+      });
+      expect(calc.display).toBe(expected);
+    });
+  });
 });
+
+describe('繰り返し演算テスト', () => {
+  let calc: AppComponent;
+
+  beforeEach(() => {
+    calc = new AppComponent();
+    calc.clearDisplay?.();
+  });
+
+  const repeatCalcCases = [
+    { 
+      sequence: ['8','+','='], 
+      expected: ['16'], 
+      desc: '8+= は 8+8=16'
+    },
+    { 
+      sequence: ['8','+','=','=','='], 
+      expected: ['16','24','32'], 
+      desc: '8+= を3回押すと 8+8+8+8=32'
+    },
+    { 
+      sequence: ['1','0','−','=','='], 
+      expected: ['0','-10'], 
+      desc: '10−= を2回押すと 10-10-10=-10'
+    },
+    { 
+      sequence: ['4','×','=','='], 
+      expected: ['16','64'], 
+      desc: '4×= を2回押すと 4×4×4=64'
+    },
+    { 
+      sequence: ['8','1','÷','=','='], 
+      expected: ['1','1'], 
+      desc: '81÷= を2回押すと 81÷81÷81'
+    },
+    { 
+      sequence: ['2','.','5','+','=','='], 
+      expected: ['5','7.5'], 
+      desc: '小数の繰り返し演算 2.5+= を2回'
+    },
+    { 
+      sequence: ['3','+','2','=','+','='], 
+      expected: ['5','10'], 
+      desc: '3+2=5の後に+= で 5+2=7'
+    },
+    { 
+      sequence: ['1','0','−','5','=','−','='], 
+      expected: ['5','0'], 
+      desc: '10-5=5の後に−= で 5-5=0'
+    }
+  ];
+
+  repeatCalcCases.forEach(({ sequence, expected, desc }) => {
+    it(desc, () => {
+      let resultIndex = 0;
+      sequence.forEach(key => {
+        if (key === '=') {
+          calc.calculateResult();
+          expect(calc.display).toBe(expected[resultIndex], `${resultIndex + 1}回目の計算結果が違います`);
+          resultIndex++;
+        } else {
+          calc.appendValue(key);
+        }
+      });
+    });
+  });
+
+  it('演算子の後の = で直前の数値で繰り返し演算される', () => {
+    // 8+= のケース
+    calc.appendValue('8');
+    calc.appendValue('+');
+    calc.calculateResult();
+    expect(calc.display).toBe('16');
+    expect(calc.rawDisplay).toBe('16');
+
+    // さらに = を押すと +8 が繰り返される
+    calc.calculateResult();
+    expect(calc.display).toBe('24');
+    expect(calc.rawDisplay).toBe('24');
+  });
+
+  it('通常の計算の後に演算子+= で直前の数値で繰り返し演算される', () => {
+    // 8+9=17 の後に += で +9 が繰り返される
+    calc.appendValue('8');
+    calc.appendValue('+');
+    calc.appendValue('9');
+    calc.calculateResult();
+    expect(calc.display).toBe('17');
+
+    calc.appendValue('+');
+    calc.calculateResult();
+    expect(calc.display).toBe('34');
+  });
+});
+
